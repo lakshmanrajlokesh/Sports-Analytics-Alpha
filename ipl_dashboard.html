@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IPL Match Command Center</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#0a0c10;--bg2:#0f1218;--bg3:#161b24;--bg4:#1c2433;
+  --border:#1e2d42;--border2:#243650;
+  --accent:#00d4ff;--accent2:#00ff9d;--accent3:#ff6b35;
+  --gold:#ffd700;--red:#ff3d3d;--green:#00ff9d;
+  --text:#e8f4f8;--text2:#7a9db8;--text3:#4a6a88;
+  --font-head:'Rajdhani',sans-serif;
+  --font-mono:'Share Tech Mono',monospace;
+  --font-body:'Inter',sans-serif;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font-body);}
+
+/* SETUP SCREEN */
+#setup-screen{
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
+  padding:30px 20px;background:var(--bg);
+}
+.setup-header{text-align:center;margin-bottom:32px;}
+.setup-header h1{font-family:var(--font-head);font-size:2.6rem;font-weight:700;color:var(--accent);letter-spacing:3px;text-transform:uppercase;}
+.setup-header p{color:var(--text2);font-size:0.85rem;margin-top:6px;letter-spacing:1px;}
+
+.setup-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;width:100%;max-width:1100px;}
+.setup-card{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:22px;}
+.setup-card.full{grid-column:1/-1;}
+.setup-card h3{font-family:var(--font-head);font-size:1rem;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:2px;margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid var(--border);}
+
+label{display:block;font-size:0.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;margin-top:14px;}
+label:first-of-type{margin-top:0;}
+select,input[type=text]{
+  width:100%;background:var(--bg4);border:1px solid var(--border2);border-radius:6px;
+  color:var(--text);font-family:var(--font-body);font-size:0.85rem;padding:9px 12px;
+  outline:none;transition:border-color .2s;
+}
+select:focus,input:focus{border-color:var(--accent);}
+
+.player-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;}
+.player-slot{display:flex;align-items:center;gap:6px;}
+.slot-num{font-family:var(--font-mono);font-size:0.7rem;color:var(--text3);min-width:18px;}
+
+.toss-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+
+.launch-btn{
+  width:100%;max-width:400px;margin:28px auto 0;display:block;
+  background:linear-gradient(135deg,var(--accent),#0090bb);
+  border:none;border-radius:8px;color:#000;
+  font-family:var(--font-head);font-size:1.2rem;font-weight:700;
+  letter-spacing:3px;text-transform:uppercase;padding:16px;
+  cursor:pointer;transition:all .2s;
+}
+.launch-btn:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(0,212,255,0.4);}
+
+/* DASHBOARD */
+#dashboard{display:none;height:100vh;flex-direction:column;overflow:hidden;}
+
+.top-bar{
+  background:var(--bg2);border-bottom:1px solid var(--border);
+  padding:10px 20px;display:flex;align-items:center;justify-content:space-between;
+  flex-shrink:0;
+}
+.match-title{font-family:var(--font-head);font-size:1.1rem;font-weight:700;color:var(--accent);letter-spacing:2px;}
+.match-meta{font-size:0.72rem;color:var(--text2);}
+.live-badge{background:var(--red);color:#fff;font-size:0.65rem;font-weight:700;padding:3px 8px;border-radius:3px;letter-spacing:1px;animation:blink 1.5s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.5}}
+
+.main-content{display:grid;grid-template-columns:260px 1fr 280px;height:calc(100vh - 52px);overflow:hidden;}
+
+/* LEFT PANEL - BATTING ORDER */
+.left-panel{background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+.panel-header{padding:12px 14px;background:var(--bg3);border-bottom:1px solid var(--border);font-family:var(--font-head);font-size:0.85rem;font-weight:600;letter-spacing:2px;color:var(--accent);text-transform:uppercase;}
+.panel-body{flex:1;overflow-y:auto;padding:8px;}
+
+.batting-item{
+  display:flex;align-items:center;gap:8px;padding:7px 10px;
+  border-radius:6px;margin-bottom:4px;transition:all .2s;
+  border:1px solid transparent;cursor:pointer;
+}
+.batting-item:hover{background:var(--bg4);border-color:var(--border2);}
+.batting-item.at-crease{background:#0d2a1a;border-color:var(--green);}
+.batting-item.batting-done{opacity:.45;}
+.batting-item.recommended{border-color:var(--gold);background:#1a1500;}
+.bat-pos{font-family:var(--font-mono);font-size:0.7rem;color:var(--text3);min-width:18px;}
+.bat-name{font-size:0.82rem;font-weight:500;flex:1;}
+.bat-stats{font-family:var(--font-mono);font-size:0.65rem;color:var(--text2);text-align:right;line-height:1.4;}
+.bat-badge{font-size:0.58rem;padding:2px 5px;border-radius:3px;font-weight:600;}
+.badge-bat{background:#0a2040;color:#4da6ff;}
+.badge-bowl{background:#1a0d2e;color:#b06aff;}
+.badge-all{background:#1a1500;color:var(--gold);}
+.badge-playing{background:#0d2a1a;color:var(--green);}
+.rec-arrow{color:var(--gold);font-size:0.9rem;}
+
+/* MIDDLE PANEL */
+.mid-panel{display:flex;flex-direction:column;overflow:hidden;}
+
+/* SCOREBOARD - TV STYLE */
+.scoreboard{
+  background:linear-gradient(180deg,#0a0f1a 0%,var(--bg2) 100%);
+  border-bottom:1px solid var(--border);padding:14px 20px;flex-shrink:0;
+}
+.score-main{display:flex;align-items:baseline;gap:16px;margin-bottom:8px;}
+.score-big{font-family:var(--font-head);font-size:3.2rem;font-weight:700;color:var(--text);line-height:1;}
+.score-overs{font-family:var(--font-mono);font-size:0.95rem;color:var(--text2);align-self:flex-end;padding-bottom:6px;}
+.score-crr{font-family:var(--font-mono);font-size:0.8rem;color:var(--accent2);align-self:flex-end;padding-bottom:6px;}
+
+.score-meta-row{display:flex;gap:24px;flex-wrap:wrap;}
+.score-meta-item{display:flex;flex-direction:column;}
+.score-meta-label{font-size:0.62rem;color:var(--text3);text-transform:uppercase;letter-spacing:1px;}
+.score-meta-value{font-family:var(--font-mono);font-size:0.88rem;color:var(--text);margin-top:1px;}
+.score-meta-value.hot{color:var(--red);}
+.score-meta-value.good{color:var(--green);}
+
+.batsmen-bar{
+  background:var(--bg3);border:1px solid var(--border);border-radius:8px;
+  padding:10px 14px;margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:10px;
+}
+.batsman-live{display:flex;gap:10px;align-items:center;}
+.batsman-indicator{width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0;}
+.batsman-indicator.non-striker{background:var(--text3);}
+.batsman-info{flex:1;}
+.batsman-name{font-size:0.82rem;font-weight:500;}
+.batsman-score{font-family:var(--font-mono);font-size:0.75rem;color:var(--text2);}
+.striker-label{font-size:0.58rem;color:var(--green);text-transform:uppercase;letter-spacing:1px;}
+
+/* OVER INPUT */
+.over-section{padding:14px 20px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.over-section-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+.over-section-title{font-family:var(--font-head);font-size:0.8rem;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:2px;}
+.bowler-input-row{display:flex;gap:8px;margin-bottom:10px;align-items:center;}
+.bowler-label{font-size:0.7rem;color:var(--text3);white-space:nowrap;}
+.bowler-select{flex:1;background:var(--bg4);border:1px solid var(--border2);border-radius:5px;color:var(--text);font-size:0.8rem;padding:6px 10px;outline:none;}
+.bowler-select:focus{border-color:var(--accent);}
+
+.ball-inputs{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
+.ball-input{
+  background:var(--bg4);border:1px solid var(--border2);border-radius:5px;
+  color:var(--text);font-family:var(--font-mono);font-size:0.85rem;
+  text-align:center;padding:8px 4px;outline:none;transition:border-color .2s;
+}
+.ball-input:focus{border-color:var(--accent);}
+.ball-label{font-size:0.6rem;color:var(--text3);text-align:center;margin-top:3px;text-transform:uppercase;}
+.submit-btn{
+  width:100%;background:var(--accent);border:none;border-radius:6px;
+  color:#000;font-family:var(--font-head);font-size:0.85rem;font-weight:700;
+  letter-spacing:2px;text-transform:uppercase;padding:10px;cursor:pointer;
+  transition:all .2s;margin-top:10px;
+}
+.submit-btn:hover{background:#00eeff;}
+
+/* OVER HISTORY */
+.history-section{flex:1;overflow-y:auto;padding:14px 20px;}
+.history-title{font-family:var(--font-head);font-size:0.75rem;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:2px;margin-bottom:10px;}
+.over-row{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:6px;background:var(--bg3);margin-bottom:5px;border:1px solid var(--border);}
+.over-num{font-family:var(--font-mono);font-size:0.7rem;color:var(--text3);min-width:50px;}
+.over-balls{display:flex;gap:5px;}
+.ball-dot{
+  width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-family:var(--font-mono);font-size:0.7rem;font-weight:600;
+}
+.ball-0{background:#1a2230;color:var(--text3);}
+.ball-run{background:#0a2040;color:#4da6ff;}
+.ball-4{background:#0a1a3a;color:#00aaff;border:1px solid #00aaff;}
+.ball-6{background:#1a0a3a;color:#aa00ff;border:1px solid #aa00ff;}
+.ball-W{background:#3a0a0a;color:var(--red);border:1px solid var(--red);}
+.ball-W-extra{background:#2a0a0a;color:#ff8888;}
+.ball-extra{background:#1a2a00;color:#aaff00;}
+.over-total{font-family:var(--font-mono);font-size:0.8rem;color:var(--text);margin-left:auto;font-weight:600;}
+.over-bowler{font-size:0.68rem;color:var(--text3);min-width:100px;}
+
+/* RIGHT PANEL */
+.right-panel{background:var(--bg2);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+.right-tabs{display:flex;border-bottom:1px solid var(--border);}
+.rtab{flex:1;padding:10px;text-align:center;font-family:var(--font-head);font-size:0.72rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;cursor:pointer;color:var(--text3);border-bottom:2px solid transparent;transition:all .2s;}
+.rtab.active{color:var(--accent);border-bottom-color:var(--accent);}
+
+.rpanel{display:none;flex:1;overflow-y:auto;padding:12px;}
+.rpanel.active{display:block;}
+
+/* WIN PROBABILITY */
+.win-prob-section{margin-bottom:14px;}
+.win-prob-label{font-size:0.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;}
+.win-prob-bar-wrap{position:relative;height:28px;background:var(--bg4);border-radius:14px;overflow:hidden;border:1px solid var(--border2);}
+.win-prob-fill{height:100%;border-radius:14px;transition:width .8s ease;background:linear-gradient(90deg,var(--accent),var(--green));}
+.win-prob-pct{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-family:var(--font-mono);font-size:0.78rem;font-weight:600;color:var(--text);}
+
+/* BOWLER RECS */
+.rec-card{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px;transition:all .2s;}
+.rec-card.top-rec{border-color:var(--gold);}
+.rec-card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.rec-name{font-size:0.85rem;font-weight:500;}
+.rec-rank{font-family:var(--font-mono);font-size:0.68rem;color:var(--text3);}
+.rec-rank.gold{color:var(--gold);}
+.rec-stats-row{display:flex;gap:10px;flex-wrap:wrap;}
+.rec-stat{display:flex;flex-direction:column;}
+.rec-stat-label{font-size:0.6rem;color:var(--text3);text-transform:uppercase;}
+.rec-stat-value{font-family:var(--font-mono);font-size:0.78rem;color:var(--text);}
+.rec-stat-value.highlight{color:var(--accent2);}
+.rec-reason{font-size:0.68rem;color:var(--text2);margin-top:6px;border-top:1px solid var(--border);padding-top:6px;line-height:1.4;}
+
+/* ALERT PANEL */
+.alert-box{border-radius:7px;padding:10px 12px;margin-bottom:8px;border-left:3px solid;}
+.alert-red{background:#1a0808;border-color:var(--red);color:#ffaaaa;}
+.alert-yellow{background:#1a1500;border-color:var(--gold);color:#ffe97a;}
+.alert-green{background:#0a1a0d;border-color:var(--green);color:#7affaa;}
+.alert-title{font-family:var(--font-head);font-size:0.8rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;}
+.alert-body{font-size:0.72rem;margin-top:4px;line-height:1.4;}
+
+/* BOWLING PANEL */
+.bowl-stat-row{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:6px;margin-bottom:4px;background:var(--bg3);border:1px solid var(--border);}
+.bowl-name{font-size:0.82rem;font-weight:500;flex:1;}
+.bowl-figures{font-family:var(--font-mono);font-size:0.8rem;color:var(--accent);}
+.bowl-econ{font-family:var(--font-mono);font-size:0.72rem;color:var(--text2);}
+
+/* scrollbar */
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+
+/* momentum chart */
+.momentum-wrap{padding:10px 20px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.momentum-title{font-size:0.62rem;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;}
+canvas#momentum-chart{width:100%;height:50px;display:block;}
+</style>
+</head>
+<body>
+
+<!-- ============ SETUP SCREEN ============ -->
+<div id="setup-screen">
+  <div class="setup-header">
+    <h1>⚡ IPL Command Center</h1>
+    <p>Real-Time Match Decision Support Dashboard</p>
+  </div>
+
+  <div class="setup-grid">
+    <!-- Match Info -->
+    <div class="setup-card">
+      <h3>Match Details</h3>
+
+      <label>Venue</label>
+      <select id="venue">
+        <option>Wankhede Stadium, Mumbai</option>
+        <option>Eden Gardens, Kolkata</option>
+        <option>M. Chinnaswamy Stadium, Bengaluru</option>
+        <option>Arun Jaitley Stadium, Delhi</option>
+        <option>MA Chidambaram Stadium, Chennai</option>
+        <option>Rajiv Gandhi International Stadium, Hyderabad</option>
+        <option>DY Patil Stadium, Mumbai</option>
+        <option>Brabourne - CCI, Mumbai</option>
+        <option>Maharashtra Cricket Association Stadium, Pune</option>
+        <option>Sawai Mansingh Stadium, Jaipur</option>
+        <option>Punjab Cricket Association Stadium, Mohali</option>
+        <option>Narendra Modi Stadium, Ahmedabad</option>
+      </select>
+    </div>
+
+    <!-- Toss -->
+    <div class="setup-card">
+      <h3>Toss & Innings</h3>
+      <label>Team A Name</label>
+      <input type="text" id="team-a-name" value="Mumbai Indians" placeholder="Team A">
+      <label>Team B Name</label>
+      <input type="text" id="team-b-name" value="Chennai Super Kings" placeholder="Team B">
+      <label>Toss Won By</label>
+      <select id="toss-won">
+        <option id="toss-opt-a">Mumbai Indians</option>
+        <option id="toss-opt-b">Chennai Super Kings</option>
+      </select>
+      <label>Elected To</label>
+      <select id="toss-decision">
+        <option value="bat">Bat First</option>
+        <option value="field">Field First</option>
+      </select>
+    </div>
+
+    <!-- Team A Players -->
+    <div class="setup-card">
+      <h3 id="team-a-label">Team A — Playing XI</h3>
+      <div class="player-grid" id="team-a-players"></div>
+    </div>
+
+    <!-- Team B Players -->
+    <div class="setup-card">
+      <h3 id="team-b-label">Team B — Playing XI</h3>
+      <div class="player-grid" id="team-b-players"></div>
+    </div>
+  </div>
+
+  <button class="launch-btn" onclick="launchDashboard()">🚀 Start Match</button>
+</div>
+
+<!-- ============ DASHBOARD ============ -->
+<div id="dashboard">
+  <div class="top-bar">
+    <div>
+      <div class="match-title" id="db-match-title">MI vs CSK</div>
+      <div class="match-meta" id="db-match-meta">T20 · Wankhede Stadium · Innings 1</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div class="live-badge">● LIVE SIM</div>
+      <button onclick="goSetup()" style="background:transparent;border:1px solid var(--border2);color:var(--text2);padding:6px 12px;border-radius:5px;font-size:0.72rem;cursor:pointer;font-family:var(--font-body);">← Reset</button>
+    </div>
+  </div>
+
+  <div class="main-content">
+    <!-- LEFT: BATTING ORDER -->
+    <div class="left-panel">
+      <div class="panel-header" id="batting-panel-title">Batting Order</div>
+      <div class="panel-body" id="batting-order-list"></div>
+    </div>
+
+    <!-- MIDDLE: SCORECARD + INPUT -->
+    <div class="mid-panel">
+      <!-- Scoreboard TV -->
+      <div class="scoreboard">
+        <div class="score-main">
+          <div class="score-big" id="score-display">0/0</div>
+          <div class="score-overs" id="overs-display">0.0 Ov</div>
+          <div class="score-crr" id="crr-display">CRR: 0.00</div>
+        </div>
+        <div class="score-meta-row">
+          <div class="score-meta-item">
+            <span class="score-meta-label">Target</span>
+            <span class="score-meta-value" id="target-display">—</span>
+          </div>
+          <div class="score-meta-item">
+            <span class="score-meta-label">RRR</span>
+            <span class="score-meta-value hot" id="rrr-display">—</span>
+          </div>
+          <div class="score-meta-item">
+            <span class="score-meta-label">Projected</span>
+            <span class="score-meta-value" id="projected-display">—</span>
+          </div>
+          <div class="score-meta-item">
+            <span class="score-meta-label">Last Over</span>
+            <span class="score-meta-value" id="last-over-display">—</span>
+          </div>
+        </div>
+        <div class="batsmen-bar">
+          <div class="batsman-live">
+            <div class="batsman-indicator" id="striker-dot"></div>
+            <div class="batsman-info">
+              <div class="striker-label">Striker ★</div>
+              <div class="batsman-name" id="striker-name">—</div>
+              <div class="batsman-score" id="striker-score">0 (0)</div>
+            </div>
+          </div>
+          <div class="batsman-live">
+            <div class="batsman-indicator non-striker"></div>
+            <div class="batsman-info">
+              <div class="striker-label" style="color:var(--text3);">Non-Striker</div>
+              <div class="batsman-name" id="nonstriker-name">—</div>
+              <div class="batsman-score" id="nonstriker-score">0 (0)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Momentum chart -->
+      <div class="momentum-wrap">
+        <div class="momentum-title">Over-by-over run rate</div>
+        <canvas id="momentum-chart" height="50"></canvas>
+      </div>
+
+      <!-- Over Input -->
+      <div class="over-section">
+        <div class="over-section-header">
+          <div class="over-section-title" id="over-input-title">Enter Over 1</div>
+          <div style="font-family:var(--font-mono);font-size:0.72rem;color:var(--text3)" id="balls-remaining-display">120 balls left</div>
+        </div>
+        <div class="bowler-input-row">
+          <span class="bowler-label">Bowler:</span>
+          <select class="bowler-select" id="bowler-select"></select>
+        </div>
+        <div class="ball-inputs" id="ball-inputs-grid"></div>
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:3px;" id="ball-labels-grid"></div>
+        <button class="submit-btn" onclick="submitOver()">Submit Over →</button>
+      </div>
+
+      <!-- Over History -->
+      <div class="history-section">
+        <div class="history-title">Over History</div>
+        <div id="over-history-list"></div>
+      </div>
+    </div>
+
+    <!-- RIGHT: RECOMMENDATIONS -->
+    <div class="right-panel">
+      <div class="right-tabs">
+        <div class="rtab active" onclick="switchRTab('recs',this)">Recs</div>
+        <div class="rtab" onclick="switchRTab('bowling',this)">Bowling</div>
+        <div class="rtab" onclick="switchRTab('alerts',this)">Alerts</div>
+      </div>
+      <div class="rpanel active" id="rpanel-recs">
+        <div class="win-prob-section">
+          <div class="win-prob-label">Win Probability — <span id="batting-team-name-prob">Batting Team</span></div>
+          <div class="win-prob-bar-wrap">
+            <div class="win-prob-fill" id="win-prob-fill" style="width:50%"></div>
+            <div class="win-prob-pct" id="win-prob-pct">50%</div>
+          </div>
+        </div>
+        <div style="font-family:var(--font-head);font-size:0.75rem;color:var(--accent);text-transform:uppercase;letter-spacing:2px;margin-bottom:10px;">Next Bowler Suggestion</div>
+        <div id="bowler-rec-list"></div>
+        <div style="font-family:var(--font-head);font-size:0.75rem;color:var(--accent2);text-transform:uppercase;letter-spacing:2px;margin:14px 0 8px;">Next Batter Suggestion</div>
+        <div id="batter-rec-list"></div>
+      </div>
+      <div class="rpanel" id="rpanel-bowling">
+        <div style="font-family:var(--font-head);font-size:0.75rem;color:var(--text3);text-transform:uppercase;letter-spacing:2px;margin-bottom:10px;">Bowling Figures</div>
+        <div id="bowling-figures-list"></div>
+      </div>
+      <div class="rpanel" id="rpanel-alerts">
+        <div style="font-family:var(--font-head);font-size:0.75rem;color:var(--text3);text-transform:uppercase;letter-spacing:2px;margin-bottom:10px;">Live Alerts</div>
+        <div id="alerts-list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ========== PLAYER STATS DATA ==========
+const PLAYER_STATS = {"Michael Hussey": {"bat_avg": 84.0, "bat_sr": 168.0, "bat_runs": 733, "bat_4s": 81, "bat_6s": 17, "role": "batter"}, "Chris Gayle": {"bat_avg": 67.55, "bat_sr": 183.13, "bat_runs": 733, "bat_4s": 57, "bat_6s": 59, "bowl_wkts": 8, "bowl_econ": 1.5, "bowl_dots": 14, "role": "allrounder"}, "Virat Kohli": {"bat_avg": 81.08, "bat_sr": 152.03, "bat_runs": 973, "bat_4s": 83, "bat_6s": 38, "bowl_wkts": 2, "bowl_econ": 5.45, "role": "allrounder"}, "Suresh Raina": {"bat_avg": 47.27, "bat_sr": 150.13, "bat_runs": 548, "bat_4s": 51, "bat_6s": 22, "bowl_wkts": 7, "bowl_econ": 3.0, "bowl_dots": 11, "role": "allrounder"}, "Shane Watson": {"bat_avg": 47.2, "bat_sr": 162.28, "bat_runs": 555, "bat_4s": 59, "bat_6s": 35, "bowl_wkts": 20, "bowl_econ": 2.5, "bowl_dots": 17, "role": "allrounder"}, "Rohit Sharma": {"bat_avg": 44.45, "bat_sr": 147.98, "bat_runs": 538, "bat_4s": 52, "bat_6s": 28, "bowl_wkts": 11, "bowl_econ": 3.0, "bowl_dots": 6, "role": "allrounder"}, "Dinesh Karthik": {"bat_avg": 55.0, "bat_sr": 183.33, "bat_runs": 510, "bat_4s": 54, "bat_6s": 22, "role": "batter"}, "Ajinkya Rahane": {"bat_avg": 49.09, "bat_sr": 137.89, "bat_runs": 560, "bat_4s": 73, "bat_6s": 13, "bowl_wkts": 1, "bowl_econ": 5.0, "role": "allrounder"}, "Rahul Dravid": {"bat_avg": 31.18, "bat_sr": 128.64, "bat_runs": 471, "bat_4s": 64, "bat_6s": 11, "role": "batter"}, "MS Dhoni": {"bat_avg": 83.2, "bat_sr": 162.89, "bat_runs": 461, "bat_4s": 38, "bat_6s": 30, "role": "batter"}, "Aaron Finch": {"bat_avg": 39.3, "bat_sr": 166.11, "bat_runs": 456, "bat_4s": 54, "bat_6s": 19, "bowl_wkts": 1, "bowl_econ": 4.28, "role": "allrounder"}, "Robin Uthappa": {"bat_avg": 44.0, "bat_sr": 171.55, "bat_runs": 660, "bat_4s": 74, "bat_6s": 27, "role": "batter"}, "Kieron Pollard": {"bat_avg": 53.6, "bat_sr": 191.42, "bat_runs": 420, "bat_4s": 28, "bat_6s": 29, "bowl_wkts": 16, "bowl_econ": 3.5, "bowl_dots": 14, "role": "allrounder"}, "Dwayne Smith": {"bat_avg": 39.25, "bat_sr": 162.87, "bat_runs": 566, "bat_4s": 52, "bat_6s": 34, "bowl_wkts": 8, "bowl_econ": 2.0, "bowl_dots": 18, "role": "allrounder"}, "David Miller": {"bat_avg": 68.71, "bat_sr": 164.56, "bat_runs": 481, "bat_4s": 34, "bat_6s": 24, "role": "batter"}, "David Warner": {"bat_avg": 69.2, "bat_sr": 164.1, "bat_runs": 848, "bat_4s": 88, "bat_6s": 31, "bowl_wkts": 0, "bowl_econ": 12.0, "role": "allrounder"}, "Gautam Gambhir": {"bat_avg": 41.5, "bat_sr": 143.55, "bat_runs": 590, "bat_4s": 68, "bat_6s": 17, "role": "batter"}, "AB de Villiers": {"bat_avg": 53.33, "bat_sr": 175.08, "bat_runs": 687, "bat_4s": 60, "bat_6s": 37, "role": "batter"}, "Yusuf Pathan": {"bat_avg": 72.2, "bat_sr": 179.01, "bat_runs": 435, "bat_4s": 43, "bat_6s": 25, "bowl_wkts": 13, "bowl_econ": 1.5, "bowl_dots": 15, "role": "allrounder"}, "Mahela Jayawardena": {"bat_avg": 43.9, "bat_sr": 147.31, "bat_runs": 439, "bat_4s": 55, "bat_6s": 11, "role": "batter"}, "Murali Vijay": {"bat_avg": 35.23, "bat_sr": 156.84, "bat_runs": 458, "bat_4s": 50, "bat_6s": 26, "bowl_wkts": 0, "bowl_econ": 5.33, "bowl_dots": 3, "role": "allrounder"}, "Jacques Kallis": {"bat_avg": 47.66, "bat_sr": 117.05, "bat_runs": 572, "bat_4s": 67, "bat_6s": 10, "bowl_wkts": 16, "bowl_econ": 1.5, "bowl_dots": 14, "role": "allrounder"}, "Shikhar Dhawan": {"bat_avg": 44.14, "bat_sr": 144.73, "bat_runs": 618, "bat_4s": 67, "bat_6s": 18, "bowl_wkts": 3, "bowl_econ": 4.0, "bowl_dots": 4, "role": "allrounder"}, "Eoin Morgan": {"bat_avg": 41.8, "bat_sr": 138.41, "bat_runs": 418, "bat_4s": 32, "bat_6s": 24, "role": "batter"}, "Shaun Marsh": {"bat_avg": 68.44, "bat_sr": 146.51, "bat_runs": 616, "bat_4s": 59, "bat_6s": 26, "role": "batter"}, "Virender Sehwag": {"bat_avg": 38.54, "bat_sr": 184.54, "bat_runs": 495, "bat_4s": 57, "bat_6s": 21, "bowl_wkts": 3, "bowl_econ": 4.05, "bowl_dots": 13, "role": "allrounder"}, "Parthiv Patel": {"bat_avg": 30.6, "bat_sr": 140.36, "bat_runs": 395, "bat_4s": 49, "bat_6s": 10, "role": "batter"}, "Adam Gilchrist": {"bat_avg": 34.4, "bat_sr": 156.21, "bat_runs": 495, "bat_4s": 54, "bat_6s": 29, "bowl_wkts": 1, "role": "allrounder"}, "Brad Hodge": {"bat_avg": 41.85, "bat_sr": 140.27, "bat_runs": 365, "bat_4s": 34, "bat_6s": 9, "bowl_wkts": 7, "bowl_econ": 3.0, "bowl_dots": 16, "role": "allrounder"}, "Stuart Binny": {"bat_avg": 37.0, "bat_sr": 175.0, "bat_runs": 293, "bat_4s": 25, "bat_6s": 12, "bowl_wkts": 6, "bowl_econ": 1.5, "bowl_dots": 12, "role": "allrounder"}, "Sachin Tendulkar": {"bat_avg": 47.53, "bat_sr": 132.61, "bat_runs": 618, "bat_4s": 86, "bat_6s": 10, "bowl_wkts": 0, "bowl_econ": 5.5, "bowl_dots": 1, "role": "allrounder"}, "Ambati Rayudu": {"bat_avg": 43.0, "bat_sr": 151.17, "bat_runs": 602, "bat_4s": 53, "bat_6s": 34, "bowl_wkts": 0, "bowl_econ": 7.33, "role": "allrounder"}, "Mandeep Singh": {"bat_avg": 41.25, "bat_sr": 157.0, "bat_runs": 432, "bat_4s": 53, "bat_6s": 11, "bowl_wkts": 1, "bowl_econ": 7.66, "role": "allrounder"}, "Manvinder Bisla": {"bat_avg": 30.42, "bat_sr": 133.12, "bat_runs": 255, "bat_4s": 36, "bat_6s": 10, "role": "batter"}, "Hanuma Vihari": {"bat_avg": 17.21, "bat_sr": 111.42, "bat_runs": 241, "bat_4s": 17, "bat_6s": 1, "bowl_wkts": 1, "bowl_econ": 2.5, "bowl_dots": 8, "role": "allrounder"}, "Yuvraj Singh": {"bat_avg": 34.3, "bat_sr": 162.5, "bat_runs": 376, "bat_4s": 30, "bat_6s": 28, "bowl_wkts": 9, "bowl_econ": 3.25, "bowl_dots": 15, "role": "allrounder"}, "David Hussey": {"bat_avg": 58.0, "bat_sr": 166.1, "bat_runs": 396, "bat_4s": 28, "bat_6s": 17, "bowl_wkts": 3, "bowl_econ": 3.5, "bowl_dots": 9, "role": "allrounder"}, "Thisara Perera": {"bat_avg": 23.3, "bat_sr": 161.29, "bat_runs": 233, "bat_4s": 12, "bat_6s": 14, "bowl_wkts": 19, "bowl_econ": 3.47, "bowl_dots": 13, "role": "allrounder"}, "Cameron White": {"bat_avg": 43.54, "bat_sr": 149.68, "bat_runs": 479, "bat_4s": 41, "bat_6s": 20, "bowl_wkts": 1, "bowl_econ": 8.0, "role": "allrounder"}, "Sanju Samson": {"bat_avg": 40.33, "bat_sr": 158.89, "bat_runs": 484, "bat_4s": 45, "bat_6s": 26, "role": "batter"}, "Ravindra Jadeja": {"bat_avg": 75.66, "bat_sr": 171.85, "bat_runs": 295, "bat_4s": 22, "bat_6s": 14, "bowl_wkts": 19, "bowl_econ": 2.75, "bowl_dots": 17, "role": "allrounder"}, "Azhar Mahmood": {"bat_avg": 23.25, "bat_sr": 130.98, "bat_runs": 196, "bat_4s": 22, "bat_6s": 8, "bowl_wkts": 15, "bowl_econ": 4.75, "bowl_dots": 15, "role": "allrounder"}, "Ben Rohrer": {"bat_avg": 32.16, "bat_sr": 137.85, "bat_runs": 193, "bat_4s": 21, "bat_6s": 5, "bowl_wkts": 0, "bowl_econ": 12.0, "role": "allrounder"}, "Darren Sammy": {"bat_avg": 29.0, "bat_sr": 131.81, "bat_runs": 174, "bat_4s": 11, "bat_6s": 10, "bowl_wkts": 8, "bowl_econ": 3.33, "bowl_dots": 10, "role": "allrounder"}, "Angelo Mathews": {"bat_avg": 33.28, "bat_sr": 138.46, "bat_runs": 233, "bat_4s": 18, "bat_6s": 10, "bowl_wkts": 8, "bowl_econ": 4.25, "bowl_dots": 10, "role": "allrounder"}, "Moises Henriques": {"bat_avg": 46.16, "bat_sr": 220.0, "bat_runs": 287, "bat_4s": 28, "bat_6s": 13, "bowl_wkts": 12, "bowl_econ": 3.0, "bowl_dots": 13, "role": "allrounder"}, "Manan Vohra": {"bat_avg": 40.5, "bat_sr": 172.72, "bat_runs": 324, "bat_4s": 27, "bat_6s": 16, "role": "batter"}, "Steve Smith": {"bat_avg": 45.0, "bat_sr": 153.4, "bat_runs": 472, "bat_4s": 38, "bat_6s": 14, "bowl_wkts": 0, "bowl_econ": 15.0, "role": "allrounder"}, "Unmukt Chand": {"bat_avg": 20.4, "bat_sr": 122.89, "bat_runs": 158, "bat_4s": 17, "bat_6s": 4, "role": "batter"}, "Kedar Jadhav": {"bat_avg": 29.8, "bat_sr": 147.52, "bat_runs": 267, "bat_4s": 25, "bat_6s": 10, "role": "batter"}, "Manoj Tiwary": {"bat_avg": 51.28, "bat_sr": 137.28, "bat_runs": 359, "bat_4s": 31, "bat_6s": 14, "bowl_wkts": 1, "bowl_econ": 10.0, "role": "allrounder"}, "Irfan Pathan": {"bat_avg": 34.5, "bat_sr": 148.38, "bat_runs": 276, "bat_4s": 21, "bat_6s": 10, "bowl_wkts": 17, "bowl_econ": 2.5, "bowl_dots": 17, "role": "allrounder"}, "Mitchell Marsh": {"bat_avg": 31.38, "bat_sr": 132.8, "bat_runs": 251, "bat_4s": 19, "bat_6s": 14, "bowl_wkts": 7, "bowl_econ": 3.5, "bowl_dots": 15, "role": "allrounder"}, "Manish Pandey": {"bat_avg": 84.0, "bat_sr": 142.37, "bat_runs": 425, "bat_4s": 35, "bat_6s": 18, "role": "batter"}, "Manpreet Juneja": {"bat_avg": 17.85, "bat_sr": 97.65, "bat_runs": 125, "bat_4s": 11, "bat_6s": 1, "role": "batter"}, "Ashish Reddy": {"bat_avg": 24.33, "bat_sr": 162.06, "bat_runs": 125, "bat_4s": 8, "bat_6s": 5, "bowl_wkts": 10, "bowl_econ": 5.07, "bowl_dots": 8, "role": "allrounder"}, "Dishant Yagnik": {"bat_avg": 25.0, "bat_sr": 192.3, "bat_runs": 125, "bat_4s": 17, "bat_6s": 2, "role": "batter"}, "Subramaniam Badrinath": {"bat_avg": 56.57, "bat_sr": 147.69, "bat_runs": 396, "bat_4s": 41, "bat_6s": 9, "role": "batter"}, "Biplap Samantray": {"bat_avg": 24.6, "bat_sr": 110.81, "bat_runs": 123, "bat_4s": 13, "bat_6s": 2, "role": "batter"}, "Aditya Tare": {"bat_avg": 24.6, "bat_sr": 146.42, "bat_runs": 126, "bat_4s": 16, "bat_6s": 5, "role": "batter"}, "Dwayne Bravo": {"bat_avg": 47.0, "bat_sr": 266.66, "bat_runs": 371, "bat_4s": 22, "bat_6s": 20, "bowl_wkts": 32, "bowl_econ": 3.0, "bowl_dots": 13, "role": "allrounder"}, "Kumar Sangakkara": {"bat_avg": 35.55, "bat_sr": 161.61, "bat_runs": 358, "bat_4s": 47, "bat_6s": 8, "role": "batter"}, "Harbhajan Singh": {"bat_avg": 34.33, "bat_sr": 176.47, "bat_runs": 117, "bat_4s": 14, "bat_6s": 9, "bowl_wkts": 24, "bowl_econ": 2.25, "bowl_dots": 17, "role": "allrounder"}, "Saurabh Tiwary": {"bat_avg": 57.5, "bat_sr": 139.74, "bat_runs": 419, "bat_4s": 29, "bat_6s": 18, "role": "batter"}, "Rajagopal Sathish": {"bat_avg": 21.8, "bat_sr": 141.55, "bat_runs": 112, "bat_4s": 11, "bat_6s": 5, "bowl_wkts": 2, "bowl_econ": 5.5, "bowl_dots": 6, "role": "allrounder"}, "Gurkeerat Mann Singh": {"bat_avg": 32.66, "bat_sr": 165.38, "bat_runs": 113, "bat_4s": 12, "bat_6s": 3, "bowl_wkts": 3, "bowl_econ": 5.66, "bowl_dots": 8, "role": "allrounder"}, "Luke Wright": {"bat_avg": 21.2, "bat_sr": 176.66, "bat_runs": 106, "bat_4s": 16, "bat_6s": 3, "bowl_wkts": 2, "bowl_econ": 10.16, "role": "allrounder"}, "Rajat Bhatia": {"bat_avg": 34.0, "bat_sr": 170.0, "bat_runs": 99, "bat_4s": 8, "bat_6s": 3, "bowl_wkts": 13, "bowl_econ": 2.5, "bowl_dots": 17, "role": "allrounder"}, "Cheteshwar Pujara": {"bat_avg": 30.5, "bat_sr": 109.67, "bat_runs": 125, "bat_4s": 17, "bat_6s": 3, "role": "batter"}, "Akshath Reddy": {"bat_avg": 24.33, "bat_sr": 123.72, "bat_runs": 91, "bat_4s": 9, "bat_6s": 2, "bowl_wkts": 1, "bowl_econ": 10.66, "role": "allrounder"}, "Amit Mishra": {"bat_avg": 49.0, "bat_sr": 138.77, "bat_runs": 89, "bat_4s": 9, "bat_6s": 2, "bowl_wkts": 21, "bowl_econ": 2.0, "bowl_dots": 18, "role": "allrounder"}, "Karn Sharma": {"bat_avg": 21.25, "bat_sr": 144.82, "bat_runs": 104, "bat_4s": 6, "bat_6s": 6, "bowl_wkts": 15, "bowl_econ": 2.0, "bowl_dots": 16, "role": "allrounder"}, "Ryan ten Doeschate": {"bat_avg": 53.5, "bat_sr": 157.57, "bat_runs": 107, "bat_4s": 9, "bat_6s": 5, "bowl_wkts": 1, "bowl_econ": 4.0, "role": "allrounder"}, "Tillakaratne Dilshan": {"bat_avg": 35.62, "bat_sr": 131.64, "bat_runs": 285, "bat_4s": 33, "bat_6s": 5, "bowl_wkts": 3, "bowl_econ": 3.0, "bowl_dots": 11, "role": "allrounder"}, "Debabrata Das": {"bat_avg": 42.0, "bat_sr": 135.48, "bat_runs": 126, "bat_4s": 9, "bat_6s": 6, "role": "batter"}, "Vinay Kumar": {"bat_avg": 70.0, "bat_sr": 200.0, "bat_runs": 70, "bat_4s": 6, "bat_6s": 3, "bowl_wkts": 23, "bowl_econ": 4.33, "bowl_dots": 17, "role": "allrounder"}, "Wriddhiman Saha": {"bat_avg": 71.33, "bat_sr": 175.6, "bat_runs": 362, "bat_4s": 40, "bat_6s": 18, "role": "batter"}, "Mayank Agarwal": {"bat_avg": 40.09, "bat_sr": 156.45, "bat_runs": 441, "bat_4s": 44, "bat_6s": 18, "role": "batter"}, "Abhishek Nayar": {"bat_avg": 29.0, "bat_sr": 149.27, "bat_runs": 206, "bat_4s": 16, "bat_6s": 9, "bowl_wkts": 4, "bowl_econ": 4.33, "bowl_dots": 11, "role": "allrounder"}, "Piyush Chawla": {"bat_avg": 22.5, "bat_sr": 163.15, "bat_runs": 106, "bat_4s": 10, "bat_6s": 4, "bowl_wkts": 17, "bowl_econ": 4.0, "bowl_dots": 16, "role": "allrounder"}, "Ross Taylor": {"bat_avg": 37.25, "bat_sr": 183.95, "bat_runs": 280, "bat_4s": 20, "bat_6s": 15, "bowl_wkts": 0, "bowl_econ": 11.0, "role": "allrounder"}, "Luke Pomersbach": {"bat_avg": 152.0, "bat_sr": 153.53, "bat_runs": 152, "bat_4s": 13, "bat_6s": 9, "role": "batter"}, "Morne Morkel": {"bat_avg": 20.0, "bat_sr": 196.55, "bat_runs": 57, "bat_4s": 6, "bat_6s": 3, "bowl_wkts": 25, "bowl_econ": 2.75, "bowl_dots": 18, "role": "allrounder"}, "James Faulkner": {"bat_avg": 45.25, "bat_sr": 192.55, "bat_runs": 181, "bat_4s": 12, "bat_6s": 16, "bowl_wkts": 28, "bowl_econ": 4.0, "bowl_dots": 13, "role": "allrounder"}, "Dale Steyn": {"bat_avg": 26.5, "bat_sr": 153.84, "bat_runs": 53, "bat_4s": 5, "bat_6s": 2, "bowl_wkts": 19, "bowl_econ": 2.0, "bowl_dots": 18, "role": "allrounder"}, "Ricky Ponting": {"bat_avg": 10.4, "bat_sr": 73.58, "bat_runs": 52, "bat_4s": 3, "bat_6s": 1, "role": "batter"}, "Bhuvneshwar Kumar": {"bat_avg": 34.0, "bat_sr": 170.0, "bat_runs": 52, "bat_4s": 6, "bat_6s": 1, "bowl_wkts": 26, "bowl_econ": 3.0, "bowl_dots": 18, "role": "allrounder"}, "Tirumalasetti Suman": {"bat_avg": 34.11, "bat_sr": 127.45, "bat_runs": 307, "bat_4s": 23, "bat_6s": 12, "bowl_wkts": 5, "bowl_econ": 3.5, "bowl_dots": 11, "role": "allrounder"}, "Praveen Kumar": {"bat_avg": 13.0, "bat_sr": 141.3, "bat_runs": 112, "bat_4s": 10, "bat_6s": 6, "bowl_wkts": 13, "bowl_econ": 2.0, "bowl_dots": 17, "role": "allrounder"}, "Albie Morkel": {"bat_avg": 86.0, "bat_sr": 177.77, "bat_runs": 241, "bat_4s": 18, "bat_6s": 14, "bowl_wkts": 17, "bowl_econ": 3.0, "bowl_dots": 16, "role": "allrounder"}, "Manpreet Gony": {"bat_avg": 35.0, "bat_sr": 185.71, "bat_runs": 45, "bat_4s": 4, "bat_6s": 3, "bowl_wkts": 17, "bowl_econ": 2.75, "bowl_dots": 16, "role": "allrounder"}, "Chidhambaram Gautam": {"bat_avg": 22.0, "bat_sr": 129.41, "bat_runs": 121, "bat_4s": 13, "bat_6s": 5, "role": "batter"}, "Johan Botha": {"bat_avg": 46.0, "bat_sr": 206.66, "bat_runs": 230, "bat_4s": 20, "bat_6s": 2, "bowl_wkts": 9, "bowl_econ": 3.0, "bowl_dots": 15, "role": "allrounder"}, "Mitchell Johnson": {"bat_avg": 18.66, "bat_sr": 145.45, "bat_runs": 56, "bat_4s": 4, "bat_6s": 3, "bowl_wkts": 24, "bowl_econ": 2.0, "bowl_dots": 17, "role": "allrounder"}, "Kevon Cooper": {"bat_avg": 19.0, "bat_sr": 190.0, "bat_runs": 39, "bat_4s": 4, "bat_6s": 3, "bowl_wkts": 19, "bowl_econ": 3.75, "bowl_dots": 12, "role": "allrounder"}, "Umesh Yadav": {"bat_avg": 38.0, "bat_sr": 207.14, "bat_runs": 55, "bat_4s": 5, "bat_6s": 4, "bowl_wkts": 20, "bowl_econ": 2.75, "bowl_dots": 17, "role": "allrounder"}, "Ravi Rampaul": {"bat_avg": 13.0, "bat_sr": 102.7, "bat_runs": 38, "bat_4s": 3, "bat_6s": 1, "bowl_wkts": 13, "bowl_econ": 4.0, "bowl_dots": 15, "role": "allrounder"}, "Glenn Maxwell": {"bat_avg": 42.75, "bat_sr": 187.75, "bat_runs": 552, "bat_4s": 48, "bat_6s": 36, "bowl_wkts": 7, "bowl_econ": 3.0, "bowl_dots": 15, "role": "allrounder"}, "Ravichandran Ashwin": {"bat_avg": 27.29, "bat_sr": 162.5, "bat_runs": 191, "bat_4s": 14, "bat_6s": 9, "bowl_wkts": 20, "bowl_econ": 1.5, "bowl_dots": 18, "role": "allrounder"}, "Kane Richardson": {"bat_avg": 17.0, "bat_sr": 100.0, "bat_runs": 34, "bat_4s": 2, "bat_6s": 1, "bowl_wkts": 9, "bowl_econ": 4.33, "bowl_dots": 12, "role": "allrounder"}, "Owais Shah": {"bat_avg": 57.5, "bat_sr": 173.33, "bat_runs": 340, "bat_4s": 24, "bat_6s": 16, "role": "batter"}, "Roelof van der Merwe": {"bat_avg": 15.25, "bat_sr": 124.48, "bat_runs": 122, "bat_4s": 8, "bat_6s": 8, "bowl_wkts": 9, "bowl_econ": 3.75, "bowl_dots": 14, "role": "allrounder"}, "Sunil Narine": {"bat_avg": 22.31, "bat_sr": 189.89, "bat_runs": 357, "bat_4s": 40, "bat_6s": 23, "bowl_wkts": 24, "bowl_econ": 2.72, "bowl_dots": 17, "role": "allrounder"}, "Brett Lee": {"bat_avg": 21.0, "bat_sr": 210.0, "bat_runs": 42, "bat_4s": 2, "bat_6s": 4, "bowl_wkts": 7, "bowl_econ": 2.0, "bowl_dots": 17, "role": "allrounder"}, "Rishi Dhawan": {"bat_avg": 41.0, "bat_sr": 233.33, "bat_runs": 82, "bat_4s": 8, "bat_6s": 2, "bowl_wkts": 13, "bowl_econ": 3.5, "bowl_dots": 12, "role": "allrounder"}, "KL Rahul": {"bat_avg": 62.6, "bat_sr": 158.41, "bat_runs": 670, "bat_4s": 66, "bat_6s": 32, "role": "batter"}, "Bharat Chipli": {"bat_avg": 25.87, "bat_sr": 121.76, "bat_runs": 207, "bat_4s": 21, "bat_6s": 4, "bowl_wkts": 0, "bowl_econ": 20.0, "role": "allrounder"}, "Shahbaz Nadeem": {"bat_avg": 7.0, "bat_sr": 87.5, "bat_runs": 14, "bat_4s": 1, "bat_6s": 0, "bowl_wkts": 9, "bowl_econ": 3.0, "bowl_dots": 15, "role": "allrounder"}, "Dwaraka Ravi Teja": {"bat_avg": 26.14, "bat_sr": 132.92, "bat_runs": 183, "bat_4s": 17, "bat_6s": 5, "bowl_wkts": 1, "bowl_econ": 9.0, "role": "allrounder"}, "Chris Morris": {"bat_avg": 65.0, "bat_sr": 178.89, "bat_runs": 195, "bat_4s": 15, "bat_6s": 12, "bowl_wkts": 15, "bowl_econ": 4.0, "bowl_dots": 18, "role": "allrounder"}, "Mithun Manhas": {"bat_avg": 39.25, "bat_sr": 152.17, "bat_runs": 157, "bat_4s": 14, "bat_6s": 4, "bowl_wkts": 0, "bowl_econ": 4.66, "bowl_dots": 8, "role": "allrounder"}, "Ajit Agarkar": {"bat_avg": 40.0, "bat_sr": 137.93, "bat_runs": 66, "bat_4s": 5, "bat_6s": 3, "bowl_wkts": 8, "bowl_econ": 3.75, "bowl_dots": 15, "role": "allrounder"}, "Andre Russell": {"bat_avg": 56.66, "bat_sr": 204.81, "bat_runs": 510, "bat_4s": 35, "bat_6s": 52, "bowl_wkts": 17, "bowl_econ": 3.0, "bowl_dots": 14, "role": "allrounder"}, "Rahul Sharma": {"bat_avg": 9.66, "bat_sr": 114.28, "bat_runs": 29, "bat_4s": 3, "bat_6s": 2, "bowl_wkts": 16, "bowl_econ": 1.75, "bowl_dots": 17, "role": "allrounder"}, "Sachithra Senanayake": {"bat_avg": 10.0, "bat_sr": 58.82, "bat_runs": 10, "bat_4s": 0, "bat_6s": 0, "bowl_wkts": 9, "bowl_econ": 4.5, "bowl_dots": 16, "role": "allrounder"}, "Lakshmipathy Balaji": {"bat_avg": 9.0, "bat_sr": 200.0, "bat_runs": 18, "bat_4s": 1, "bat_6s": 1, "bowl_wkts": 13, "bowl_econ": 2.33, "bowl_dots": 15, "role": "allrounder"}, "Naman Ojha": {"bat_avg": 38.66, "bat_sr": 144.09, "bat_runs": 377, "bat_4s": 42, "bat_6s": 17, "role": "batter"}, "Karun Nair": {"bat_avg": 35.7, "bat_sr": 142.24, "bat_runs": 357, "bat_4s": 40, "bat_6s": 13, "role": "batter"}, "Lasith Malinga": {"bat_avg": 9.16, "bat_sr": 233.33, "bat_runs": 55, "bat_4s": 4, "bat_6s": 3, "bowl_wkts": 28, "bowl_econ": 2.0, "bowl_dots": 17, "role": "allrounder"}, "Nathan Coulter-Nile": {"bat_avg": 25.0, "bat_sr": 166.66, "bat_runs": 25, "bat_4s": 4, "bat_6s": 2, "bowl_wkts": 15, "bowl_econ": 3.5, "bowl_dots": 16, "role": "allrounder"}, "Ashok Dinda": {"bat_avg": 7.0, "bat_sr": 100.0, "bat_runs": 9, "bat_4s": 1, "bat_6s": 0, "bowl_wkts": 16, "bowl_econ": 3.0, "bowl_dots": 17, "role": "allrounder"}, "Iqbal Abdulla": {"bat_avg": 10.0, "bat_sr": 137.03, "bat_runs": 37, "bat_4s": 4, "bat_6s": 1, "bowl_wkts": 16, "bowl_econ": 3.75, "bowl_dots": 14, "role": "allrounder"}, "Marlon Samuels": {"bat_avg": 17.71, "bat_sr": 100.81, "bat_runs": 124, "bat_4s": 7, "bat_6s": 5, "bowl_wkts": 8, "bowl_econ": 2.5, "bowl_dots": 12, "role": "allrounder"}, "Siddarth Kaul": {"bat_avg": 1.0, "bat_sr": 100.0, "bat_runs": 8, "bat_4s": 1, "bat_6s": 0, "bowl_wkts": 21, "bowl_econ": 4.0, "bowl_dots": 13, "role": "allrounder"}, "Dan Christian": {"bat_avg": 29.0, "bat_sr": 161.22, "bat_runs": 190, "bat_4s": 9, "bat_6s": 7, "bowl_wkts": 11, "bowl_econ": 4.0, "bowl_dots": 14, "role": "allrounder"}, "Quinton de Kock": {"bat_avg": 40.66, "bat_sr": 158.44, "bat_runs": 529, "bat_4s": 52, "bat_6s": 25, "role": "batter"}, "Paul Valthaty": {"bat_avg": 35.61, "bat_sr": 136.98, "bat_runs": 463, "bat_4s": 56, "bat_6s": 20, "bowl_wkts": 7, "bowl_econ": 7.82, "role": "allrounder"}, "Brendon McCullum": {"bat_avg": 62.66, "bat_sr": 204.34, "bat_runs": 436, "bat_4s": 51, "bat_6s": 23, "role": "batter"}, "Mohammad Shami": {"bat_avg": 13.0, "bat_sr": 150.0, "bat_runs": 36, "bat_4s": 4, "bat_6s": 2, "bowl_wkts": 20, "bowl_econ": 3.5, "bowl_dots": 17, "role": "allrounder"}, "Dimitri Mascarenhas": {"bat_avg": 12.0, "bat_sr": 120.0, "bat_runs": 39, "bat_4s": 4, "bat_6s": 1, "bowl_wkts": 7, "bowl_econ": 5.0, "bowl_dots": 15, "role": "allrounder"}, "Wayne Parnell": {"bat_avg": 12.33, "bat_sr": 100.0, "bat_runs": 37, "bat_4s": 2, "bat_6s": 1, "bowl_wkts": 9, "bowl_econ": 3.0, "bowl_dots": 17, "role": "allrounder"}, "Paras Dogra": {"bat_avg": 13.37, "bat_sr": 100.94, "bat_runs": 107, "bat_4s": 4, "bat_6s": 5, "role": "batter"}, "Ben Laughlin": {"bat_avg": 4.0, "bat_sr": 44.44, "bat_runs": 4, "bat_4s": 0, "bat_6s": 0, "bowl_wkts": 9, "bowl_econ": 10.04, "role": "allrounder"}, "Pradeep Sangwan": {"bat_avg": 10.0, "bat_sr": 200.0, "bat_runs": 10, "bat_4s": 1, "bat_6s": 0, "bowl_wkts": 9, "bowl_econ": 4.75, "bowl_dots": 13, "role": "allrounder"}, "Ajit Chandila": {"bat_avg": 0, "bat_sr": 66.66, "bat_runs": 4, "bat_4s": 0, "bat_6s": 0, "bowl_wkts": 6, "bowl_econ": 3.0, "bowl_dots": 15, "role": "allrounder"}, "Laxmi Ratan Shukla": {"bat_avg": 20.37, "bat_sr": 140.0, "bat_runs": 163, "bat_4s": 17, "bat_6s": 5, "bowl_wkts": 6, "bowl_econ": 5.0, "bowl_dots": 13, "role": "allrounder"}, "Siddharth Trivedi": {"bat_avg": 10.0, "bat_sr": 142.85, "bat_runs": 20, "bat_4s": 3, "bat_6s": 1, "bowl_wkts": 13, "bowl_econ": 2.66, "bowl_dots": 14, "role": "allrounder"}, "Ryan McLaren": {"bat_avg": 30.0, "bat_sr": 95.65, "bat_runs": 90, "bat_4s": 7, "bat_6s": 1, "bowl_wkts": 5, "bowl_econ": 5.25, "bowl_dots": 11, "role": "allrounder"}, "Matthew Hayden": {"bat_avg": 63.0, "bat_sr": 144.81, "bat_runs": 572, "bat_4s": 60, "bat_6s": 22, "role": "batter"}, "JP Duminy": {"bat_avg": 81.33, "bat_sr": 134.42, "bat_runs": 414, "bat_4s": 27, "bat_6s": 20, "bowl_wkts": 8, "bowl_econ": 1.5, "bowl_dots": 13, "role": "allrounder"}, "Herschelle Gibbs": {"bat_avg": 40.5, "bat_sr": 113.61, "bat_runs": 371, "bat_4s": 32, "bat_6s": 12, "role": "batter"}, "Andrew Symonds": {"bat_avg": 80.5, "bat_sr": 153.33, "bat_runs": 429, "bat_4s": 35, "bat_6s": 18, "bowl_wkts": 12, "bowl_econ": 3.75, "bowl_dots": 11, "role": "allrounder"}, "Sanath Jayasuriya": {"bat_avg": 43.16, "bat_sr": 167.63, "bat_runs": 518, "bat_4s": 58, "bat_6s": 31, "bowl_wkts": 7, "bowl_econ": 3.5, "bowl_dots": 16, "role": "allrounder"}, "Graeme Smith": {"bat_avg": 49.0, "bat_sr": 121.82, "bat_runs": 441, "bat_4s": 54, "bat_6s": 8, "role": "batter"}, "Sourav Ganguly": {"bat_avg": 37.92, "bat_sr": 117.66, "bat_runs": 493, "bat_4s": 58, "bat_6s": 15, "bowl_wkts": 6, "bowl_econ": 2.33, "bowl_dots": 11, "role": "allrounder"}, "Mark Boucher": {"bat_avg": 32.14, "bat_sr": 130.0, "bat_runs": 225, "bat_4s": 24, "bat_6s": 6, "role": "batter"}, "Simon Katich": {"bat_avg": 96.0, "bat_sr": 139.13, "bat_runs": 145, "bat_4s": 15, "bat_6s": 6, "role": "batter"}, "Ravi Bopara": {"bat_avg": 31.0, "bat_sr": 120.83, "bat_runs": 248, "bat_4s": 25, "bat_6s": 7, "bowl_wkts": 6, "bowl_econ": 3.75, "bowl_dots": 12, "role": "allrounder"}, "Venugopal Rao": {"bat_avg": 36.0, "bat_sr": 137.14, "bat_runs": 336, "bat_4s": 30, "bat_6s": 15, "bowl_wkts": 4, "bowl_econ": 4.0, "bowl_dots": 10, "role": "allrounder"}, "Karan Goel": {"bat_avg": 18.0, "bat_sr": 97.43, "bat_runs": 124, "bat_4s": 9, "bat_6s": 4, "bowl_wkts": 0, "bowl_econ": 5.5, "bowl_dots": 4, "role": "allrounder"}, "Sunny Sohal": {"bat_avg": 24.9, "bat_sr": 130.36, "bat_runs": 249, "bat_4s": 25, "bat_6s": 10, "role": "batter"}, "Shane Warne": {"bat_avg": 14.0, "bat_sr": 118.64, "bat_runs": 108, "bat_4s": 7, "bat_6s": 4, "bowl_wkts": 19, "bowl_econ": 3.25, "bowl_dots": 15, "role": "allrounder"}, "Rob Quiney": {"bat_avg": 14.71, "bat_sr": 100.98, "bat_runs": 103, "bat_4s": 12, "bat_6s": 3, "role": "batter"}, "Swapnil Asnodkar": {"bat_avg": 34.55, "bat_sr": 133.47, "bat_runs": 311, "bat_4s": 43, "bat_6s": 6, "role": "batter"}, "Kevin Pietersen": {"bat_avg": 61.0, "bat_sr": 150.31, "bat_runs": 305, "bat_4s": 34, "bat_6s": 20, "bowl_wkts": 4, "bowl_econ": 4.66, "bowl_dots": 8, "role": "allrounder"}, "Jacob Oram": {"bat_avg": 18.0, "bat_sr": 150.0, "bat_runs": 88, "bat_4s": 5, "bat_6s": 4, "bowl_wkts": 5, "bowl_econ": 5.5, "role": "allrounder"}, "Lee Carseldine": {"bat_avg": 20.25, "bat_sr": 119.11, "bat_runs": 81, "bat_4s": 11, "bat_6s": 0, "bowl_wkts": 1, "bowl_econ": 6.0, "role": "allrounder"}, "Abhishek Raut": {"bat_avg": 28.0, "bat_sr": 127.86, "bat_runs": 78, "bat_4s": 5, "bat_6s": 3, "bowl_wkts": 0, "bowl_econ": 7.0, "role": "allrounder"}, "Azhar Bilakhia": {"bat_avg": 16.75, "bat_sr": 82.71, "bat_runs": 67, "bat_4s": 5, "bat_6s": 0, "role": "batter"}, "Andrew Flintoff": {"bat_avg": 31.0, "bat_sr": 116.98, "bat_runs": 62, "bat_4s": 5, "bat_6s": 2, "bowl_wkts": 2, "bowl_econ": 3.66, "bowl_dots": 10, "role": "allrounder"}, "Jesse Ryder": {"bat_avg": 25.6, "bat_sr": 148.22, "bat_runs": 292, "bat_4s": 37, "bat_6s": 11, "bowl_wkts": 4, "bowl_econ": 3.0, "bowl_dots": 14, "role": "allrounder"}, "Shreevats Goswami": {"bat_avg": 27.33, "bat_sr": 130.0, "bat_runs": 82, "bat_4s": 9, "bat_6s": 1, "role": "batter"}, "Pinal Shah": {"bat_avg": 17.66, "bat_sr": 103.92, "bat_runs": 53, "bat_4s": 4, "bat_6s": 2, "role": "batter"}, "George Bailey": {"bat_avg": 28.55, "bat_sr": 136.31, "bat_runs": 259, "bat_4s": 22, "bat_6s": 10, "role": "batter"}, "Munaf Patel": {"bat_avg": 11.0, "bat_sr": 126.92, "bat_runs": 33, "bat_4s": 5, "bat_6s": 0, "bowl_wkts": 22, "bowl_econ": 3.33, "bowl_dots": 19, "role": "allrounder"}, "Chaminda Vaas": {"bat_avg": 30.0, "bat_sr": 142.85, "bat_runs": 30, "bat_4s": 1, "bat_6s": 1, "bowl_wkts": 9, "bowl_econ": 3.0, "bowl_dots": 14, "role": "allrounder"}, "Murali Kartik": {"bat_avg": 12.0, "bat_sr": 123.8, "bat_runs": 30, "bat_4s": 3, "bat_6s": 1, "bowl_wkts": 9, "bowl_econ": 3.0, "bowl_dots": 15, "role": "allrounder"}, "Ryan Harris": {"bat_avg": 21.0, "bat_sr": 163.63, "bat_runs": 45, "bat_4s": 3, "bat_6s": 2, "bowl_wkts": 16, "bowl_econ": 3.0, "bowl_dots": 17, "role": "allrounder"}, "Joginder Sharma": {"bat_avg": 20.0, "bat_sr": 145.45, "bat_runs": 20, "bat_4s": 1, "bat_6s": 1, "bowl_wkts": 8, "bowl_econ": 8.14, "role": "allrounder"}, "Shadab Jakati": {"bat_avg": 20.0, "bat_sr": 133.33, "bat_runs": 20, "bat_4s": 3, "bat_6s": 0, "bowl_wkts": 13, "bowl_econ": 4.25, "bowl_dots": 14, "role": "allrounder"}, "VVS Laxman": {"bat_avg": 31.0, "bat_sr": 117.42, "bat_runs": 155, "bat_4s": 22, "bat_6s": 2, "role": "batter"}, "Niraj Patel": {"bat_avg": 51.5, "bat_sr": 127.16, "bat_runs": 103, "bat_4s": 13, "bat_6s": 1, "role": "batter"}, "Ishant Sharma": {"bat_avg": 11.0, "bat_sr": 333.33, "bat_runs": 16, "bat_4s": 1, "bat_6s": 1, "bowl_wkts": 15, "bowl_econ": 2.25, "bowl_dots": 16, "role": "allrounder"}, "Anil Kumble": {"bat_avg": 16.0, "bat_sr": 84.21, "bat_runs": 16, "bat_4s": 2, "bat_6s": 0, "bowl_wkts": 21, "bowl_econ": 1.57, "bowl_dots": 14, "role": "allrounder"}, "Wasim Jaffer": {"bat_avg": 19.16, "bat_sr": 110.57, "bat_runs": 115, "bat_4s": 12, "bat_6s": 3, "role": "batter"}, "Scott Styris": {"bat_avg": 18.66, "bat_sr": 250.0, "bat_runs": 112, "bat_4s": 9, "bat_6s": 2, "bowl_wkts": 5, "bowl_econ": 4.75, "bowl_dots": 14, "role": "allrounder"}, "Dhawal Kulkarni": {"bat_avg": 11.5, "bat_sr": 200.0, "bat_runs": 35, "bat_4s": 2, "bat_6s": 2, "bowl_wkts": 18, "bowl_econ": 3.0, "bowl_dots": 16, "role": "allrounder"}, "Zaheer Khan": {"bat_avg": 24.0, "bat_sr": 184.61, "bat_runs": 34, "bat_4s": 4, "bat_6s": 1, "bowl_wkts": 17, "bowl_econ": 2.25, "bowl_dots": 18, "role": "allrounder"}, "Muttiah Muralitharan": {"bat_avg": 4.0, "bat_sr": 100.0, "bat_runs": 8, "bat_4s": 1, "bat_6s": 0, "bowl_wkts": 15, "bowl_econ": 2.0, "bowl_dots": 16, "role": "allrounder"}, "RP Singh": {"bat_avg": 6.75, "bat_sr": 112.5, "bat_runs": 27, "bat_4s": 2, "bat_6s": 1, "bowl_wkts": 23, "bowl_econ": 3.25, "bowl_dots": 17, "role": "allrounder"}, "Siddharth Chitnis": {"bat_avg": 22.0, "bat_sr": 180.0, "bat_runs": 66, "bat_4s": 7, "bat_6s": 1, "bowl_wkts": 2, "bowl_econ": 10.0, "role": "allrounder"}, "Shanthakumaran Sreesanth": {"bat_avg": 0, "bat_sr": 128.57, "bat_runs": 27, "bat_4s": 5, "bat_6s": 0, "bowl_wkts": 19, "bowl_econ": 2.5, "bowl_dots": 17, "role": "allrounder"}, "Kamran Khan": {"bat_avg": 3.0, "bat_sr": 60.0, "bat_runs": 3, "bat_4s": 0, "bat_6s": 0, "bowl_wkts": 6, "bowl_econ": 3.75, "bowl_dots": 14, "role": "allrounder"}, "Pankaj Singh": {"bat_avg": 1.0, "bat_sr": 62.5, "bat_runs": 5, "bat_4s": 0, "bat_6s": 0, "bowl_wkts": 7, "bowl_econ": 4.5, "bowl_dots": 14, "role": "allrounder"}, "Amit Singh": {"bat_avg": 1.0, "bat_sr": 33.33, "bat_runs": 1, "bat_4s": 0, "bat_6s": 0, "bowl_wkts": 10, "bowl_econ": 2.25, "bowl_dots": 16, "role": "allrounder"}, "Pragyan Ojha": {"bat_avg": 2.5, "bat_sr": 50.0, "bat_runs": 5, "bat_4s": 0, "bat_6s": 0, "bowl_wkts": 21, "bowl_econ": 3.5, "bowl_dots": 16, "role": "allrounder"}, "KP Appanna": {"bat_avg": 2.0, "bat_sr": 66.66, "bat_runs": 2, "bat_4s": 0, "bat_6s": 0, "bowl_wkts": 6, "bowl_econ": 4.75, "bowl_dots": 14, "role": "allrounder"}, "Lendl Simmons": {"bat_avg": 56.28, "bat_sr": 135.39, "bat_runs": 540, "bat_4s": 56, "bat_6s": 21, "bowl_wkts": 1, "bowl_econ": 11.33, "role": "allrounder"}, "Faf du Plessis": {"bat_avg": 45.21, "bat_sr": 140.75, "bat_runs": 633, "bat_4s": 60, "bat_6s": 23, "bowl_wkts": 0, "bowl_econ": 16.0, "role": "allrounder"}, "Corey Anderson": {"bat_avg": 38.0, "bat_sr": 146.4, "bat_runs": 265, "bat_4s": 21, "bat_6s": 15, "bowl_wkts": 4, "bowl_econ": 6.0, "bowl_dots": 5, "role": "allrounder"}, "Shakib Al Hasan": {"bat_avg": 32.42, "bat_sr": 149.34, "bat_runs": 239, "bat_4s": 26, "bat_6s": 7, "bowl_wkts": 14, "bowl_econ": 3.25, "bowl_dots": 13, "role": "allrounder"}, "Suryakumar Yadav": {"bat_avg": 43.29, "bat_sr": 145.67, "bat_runs": 512, "bat_4s": 61, "bat_6s": 16, "bowl_wkts": 0, "bowl_econ": 8.0, "role": "allrounder"}, "Yogesh Takawale": {"bat_avg": 20.8, "bat_sr": 114.28, "bat_runs": 104, "bat_4s": 17, "bat_6s": 1, "role": "batter"}, "Mitchell Starc": {"bat_avg": 14.16, "bat_sr": 101.19, "bat_runs": 85, "bat_4s": 9, "bat_6s": 0, "bowl_wkts": 20, "bowl_econ": 3.75, "bowl_dots": 16, "role": "allrounder"}, "Sachin Rana": {"bat_avg": 24.33, "bat_sr": 112.5, "bat_runs": 73, "bat_4s": 7, "bat_6s": 1, "bowl_wkts": 0, "bowl_econ": 3.0, "role": "allrounder"}, "Axar Patel": {"bat_avg": 45.5, "bat_sr": 151.66, "bat_runs": 227, "bat_4s": 13, "bat_6s": 11, "bowl_wkts": 17, "bowl_econ": 2.5, "bowl_dots": 15, "role": "allrounder"}, "Chris Lynn": {"bat_avg": 49.16, "bat_sr": 180.98, "bat_runs": 491, "bat_4s": 56, "bat_6s": 22, "role": "batter"}, "Varun Aaron": {"bat_avg": 6.0, "bat_sr": 200.0, "bat_runs": 35, "bat_4s": 2, "bat_6s": 1, "bowl_wkts": 16, "bowl_econ": 1.5, "bowl_dots": 17, "role": "allrounder"}, "Rahul Tewatia": {"bat_avg": 42.5, "bat_sr": 172.72, "bat_runs": 255, "bat_4s": 22, "bat_6s": 17, "bowl_wkts": 10, "bowl_econ": 3.33, "bowl_dots": 12, "role": "allrounder"}, "Jason Holder": {"bat_avg": 33.0, "bat_sr": 133.33, "bat_runs": 85, "bat_4s": 5, "bat_6s": 6, "bowl_wkts": 16, "bowl_econ": 4.75, "bowl_dots": 14, "role": "allrounder"}, "Harshal Patel": {"bat_avg": 60.0, "bat_sr": 185.71, "bat_runs": 60, "bat_4s": 6, "bat_6s": 6, "bowl_wkts": 32, "bowl_econ": 2.75, "bowl_dots": 19, "role": "allrounder"}, "Shreyas Gopal": {"bat_avg": 16.66, "bat_sr": 140.0, "bat_runs": 63, "bat_4s": 8, "bat_6s": 1, "bowl_wkts": 20, "bowl_econ": 3.0, "bowl_dots": 16, "role": "allrounder"}, "Imran Tahir": {"bat_avg": 5.0, "bat_sr": 130.0, "bat_runs": 13, "bat_4s": 2, "bat_6s": 0, "bowl_wkts": 26, "bowl_econ": 2.25, "bowl_dots": 18, "role": "allrounder"}, "Ben Cutting": {"bat_avg": 32.5, "bat_sr": 196.15, "bat_runs": 96, "bat_4s": 5, "bat_6s": 8, "bowl_wkts": 5, "bowl_econ": 4.66, "bowl_dots": 10, "role": "allrounder"}, "Pravin Tambe": {"bat_avg": 2.5, "bat_sr": 60.0, "bat_runs": 7, "bat_4s": 1, "bat_6s": 0, "bowl_wkts": 15, "bowl_econ": 5.0, "bowl_dots": 14, "role": "allrounder"}, "Tim Southee": {"bat_avg": 26.0, "bat_sr": 233.33, "bat_runs": 52, "bat_4s": 5, "bat_6s": 2, "bowl_wkts": 14, "bowl_econ": 5.0, "bowl_dots": 16, "role": "allrounder"}, "Srikkanth Anirudha": {"bat_avg": 20.75, "bat_sr": 271.42, "bat_runs": 83, "bat_4s": 6, "bat_6s": 3, "role": "batter"}, "Sandeep Sharma": {"bat_avg": 9.0, "bat_sr": 200.0, "bat_runs": 12, "bat_4s": 1, "bat_6s": 0, "bowl_wkts": 18, "bowl_econ": 2.75, "bowl_dots": 16, "role": "allrounder"}, "Yuzvendra Chahal": {"bat_avg": 5.0, "bat_sr": 100.0, "bat_runs": 13, "bat_4s": 0, "bat_6s": 0, "bowl_wkts": 27, "bowl_econ": 1.5, "bowl_dots": 18, "role": "allrounder"}, "Jasprit Bumrah": {"bat_avg": 16.0, "bat_sr": 166.66, "bat_runs": 16, "bat_4s": 2, "bat_6s": 1, "bowl_wkts": 27, "bowl_econ": 2.33, "bowl_dots": 18, "role": "allrounder"}, "Jaydev Unadkat": {"bat_avg": 20.5, "bat_sr": 159.45, "bat_runs": 59, "bat_4s": 6, "bat_6s": 3, "bowl_wkts": 24, "bowl_econ": 1.5, "bowl_dots": 15, "role": "allrounder"}, "Karanveer Singh": {"bat_avg": 11.0, "bat_sr": 100.0, "bat_runs": 11, "bat_4s": 1, "bat_6s": 0, "bowl_wkts": 11, "bowl_econ": 4.0, "bowl_dots": 12, "role": "allrounder"}, "Mohit Sharma": {"bat_avg": 10.0, "bat_sr": 155.55, "bat_runs": 51, "bat_4s": 3, "bat_6s": 2, "bowl_wkts": 23, "bowl_econ": 3.33, "bowl_dots": 16, "role": "allrounder"}, "Michael Lumb": {"bat_avg": 25.27, "bat_sr": 144.79, "bat_runs": 278, "bat_4s": 45, "bat_6s": 6, "role": "batter"}, "Paul Collingwood": {"bat_avg": 40.6, "bat_sr": 130.12, "bat_runs": 203, "bat_4s": 9, "bat_6s": 13, "bowl_wkts": 5, "bowl_econ": 4.75, "bowl_dots": 11, "role": "allrounder"}, "Abhishek Jhunjhunwala": {"bat_avg": 20.33, "bat_sr": 110.24, "bat_runs": 183, "bat_4s": 16, "bat_6s": 4, "bowl_wkts": 1, "bowl_econ": 4.33, "bowl_dots": 8, "role": "allrounder"}, "Adam Voges": {"bat_avg": 45.25, "bat_sr": 126.57, "bat_runs": 181, "bat_4s": 15, "bat_6s": 3, "bowl_wkts": 0, "bowl_econ": 4.5, "bowl_dots": 3, "role": "allrounder"}, "Mohnish Mishra": {"bat_avg": 16.75, "bat_sr": 115.27, "bat_runs": 166, "bat_4s": 18, "bat_6s": 6, "role": "batter"}, "Faiz Fazal": {"bat_avg": 20.5, "bat_sr": 106.49, "bat_runs": 164, "bat_4s": 19, "bat_6s": 1, "bowl_wkts": 0, "bowl_econ": 10.0, "role": "allrounder"}, "Andrew McDonald": {"bat_avg": 23.5, "bat_sr": 134.28, "bat_runs": 65, "bat_4s": 6, "bat_6s": 2, "bowl_wkts": 5, "bowl_econ": 6.1, "role": "allrounder"}, "Anirudh Singh": {"bat_avg": 15.75, "bat_sr": 95.45, "bat_runs": 63, "bat_4s": 6, "bat_6s": 1, "role": "batter"}, "Daniel Vettori": {"bat_avg": 33.0, "bat_sr": 122.22, "bat_runs": 33, "bat_4s": 4, "bat_6s": 1, "bowl_wkts": 12, "bowl_econ": 3.5, "bowl_dots": 15, "role": "allrounder"}, "MF Maharoof": {"bat_avg": 20.83, "bat_sr": 158.22, "bat_runs": 125, "bat_4s": 10, "bat_6s": 7, "bowl_wkts": 15, "bowl_econ": 2.75, "bowl_dots": 13, "role": "allrounder"}, "Mohammad Kaif": {"bat_avg": 16.0, "bat_sr": 124.24, "bat_runs": 176, "bat_4s": 14, "bat_6s": 6, "role": "batter"}, "Ashish Nehra": {"bat_avg": 23.0, "bat_sr": 115.0, "bat_runs": 23, "bat_4s": 2, "bat_6s": 1, "bowl_wkts": 22, "bowl_econ": 2.5, "bowl_dots": 15, "role": "allrounder"}, "Doug Bollinger": {"bat_avg": 0, "bat_sr": 105.88, "bat_runs": 18, "bat_4s": 1, "bat_6s": 1, "bowl_wkts": 17, "bowl_econ": 3.25, "bowl_dots": 17, "role": "allrounder"}, "Shaun Tait": {"bat_avg": 12.0, "bat_sr": 100.0, "bat_runs": 12, "bat_4s": 1, "bat_6s": 1, "bowl_wkts": 10, "bowl_econ": 3.25, "bowl_dots": 14, "role": "allrounder"}, "Bipul Sharma": {"bat_avg": 31.0, "bat_sr": 204.0, "bat_runs": 72, "bat_4s": 6, "bat_6s": 5, "bowl_wkts": 4, "bowl_econ": 4.5, "bowl_dots": 11, "role": "allrounder"}, "Jaskaran Singh": {"bat_avg": 8.0, "bat_sr": 72.72, "bat_runs": 8, "bat_4s": 0, "bat_6s": 0, "bowl_wkts": 6, "bowl_econ": 6.0, "bowl_dots": 8, "role": "allrounder"}, "Dirk Nannes": {"bat_avg": 4.0, "bat_sr": 30.76, "bat_runs": 4, "bat_4s": 0, "bat_6s": 0, "bowl_wkts": 7, "bowl_econ": 3.0, "bowl_dots": 18, "role": "allrounder"}, "Juan Theron": {"bat_avg": 1.0, "bat_sr": 116.66, "bat_runs": 7, "bat_4s": 1, "bat_6s": 0, "bowl_wkts": 6, "bowl_econ": 4.25, "bowl_dots": 12, "role": "allrounder"}, "Dilhara Fernando": {"bat_avg": 0, "bat_sr": 200.0, "bat_runs": 2, "bat_4s": 0, "bat_6s": 0, "bowl_wkts": 10, "bowl_econ": 4.5, "bowl_dots": 16, "role": "allrounder"}, "Shalabh Srivastava": {"bat_avg": 1.0, "bat_sr": 133.33, "bat_runs": 4, "bat_4s": 0, "bat_6s": 0, "bowl_wkts": 8, "bowl_econ": 9.3, "bowl_dots": 12, "role": "allrounder"}, "Shane Bond": {"bat_avg": 1.0, "bat_sr": 50.0, "bat_runs": 1, "bat_4s": 0, "bat_6s": 0, "bowl_wkts": 9, "bowl_econ": 5.0, "bowl_dots": 15, "role": "allrounder"}, "Ruturaj Gaikwad": {"bat_avg": 51.0, "bat_sr": 136.26, "bat_runs": 635, "bat_4s": 64, "bat_6s": 23, "role": "batter"}, "Prithvi Shaw": {"bat_avg": 31.93, "bat_sr": 159.13, "bat_runs": 479, "bat_4s": 56, "bat_6s": 18, "role": "batter"}, "Shubman Gill": {"bat_avg": 34.5, "bat_sr": 146.04, "bat_runs": 483, "bat_4s": 51, "bat_6s": 12, "role": "batter"}, "Rishabh Pant": {"bat_avg": 52.61, "bat_sr": 173.6, "bat_runs": 684, "bat_4s": 68, "bat_6s": 37, "role": "batter"}, "Devdutt Padikkal": {"bat_avg": 31.61, "bat_sr": 125.3, "bat_runs": 473, "bat_4s": 51, "bat_6s": 14, "role": "batter"}, "Rahul Tripathi": {"bat_avg": 37.55, "bat_sr": 158.23, "bat_runs": 413, "bat_4s": 43, "bat_6s": 20, "bowl_wkts": 0, "bowl_econ": 12.0, "role": "allrounder"}, "Nitish Rana": {"bat_avg": 34.66, "bat_sr": 146.38, "bat_runs": 383, "bat_4s": 43, "bat_6s": 22, "bowl_wkts": 4, "bowl_econ": 3.0, "bowl_dots": 4, "role": "allrounder"}, "Venkatesh Iyer": {"bat_avg": 41.11, "bat_sr": 128.47, "bat_runs": 370, "bat_4s": 37, "bat_6s": 14, "bowl_wkts": 3, "bowl_econ": 8.11, "bowl_dots": 2, "role": "allrounder"}, "Moeen Ali": {"bat_avg": 27.5, "bat_sr": 167.39, "bat_runs": 357, "bat_4s": 31, "bat_6s": 19, "bowl_wkts": 8, "bowl_econ": 2.33, "bowl_dots": 16, "role": "allrounder"}, "Kane Williamson": {"bat_avg": 52.5, "bat_sr": 151.47, "bat_runs": 735, "bat_4s": 64, "bat_6s": 28, "bowl_wkts": 0, "bowl_econ": 7.0, "role": "allrounder"}, "Jos Buttler": {"bat_avg": 57.53, "bat_sr": 155.24, "bat_runs": 863, "bat_4s": 83, "bat_6s": 45, "role": "batter"}, "Yashasvi Jaiswal": {"bat_avg": 25.8, "bat_sr": 148.21, "bat_runs": 258, "bat_4s": 32, "bat_6s": 10, "bowl_dots": 0, "role": "batter"}, "Jonny Bairstow": {"bat_avg": 55.62, "bat_sr": 157.24, "bat_runs": 445, "bat_4s": 48, "bat_6s": 18, "role": "batter"}, "Shimron Hetmyer": {"bat_avg": 44.86, "bat_sr": 168.05, "bat_runs": 314, "bat_4s": 21, "bat_6s": 21, "role": "batter"}, "Ishan Kishan": {"bat_avg": 57.33, "bat_sr": 149.45, "bat_runs": 516, "bat_4s": 45, "bat_6s": 30, "role": "batter"}, "Shivam Dube": {"bat_avg": 28.9, "bat_sr": 156.21, "bat_runs": 289, "bat_4s": 22, "bat_6s": 16, "bowl_wkts": 4, "bowl_econ": 4.8, "bowl_dots": 7, "role": "allrounder"}, "K.S Bharat": {"bat_avg": 38.2, "bat_sr": 122.43, "bat_runs": 191, "bat_4s": 10, "bat_6s": 8, "role": "batter"}, "Shreyas Iyer": {"bat_avg": 37.36, "bat_sr": 139.09, "bat_runs": 519, "bat_4s": 41, "bat_6s": 21, "bowl_dots": 4, "role": "batter"}, "Deepak Hooda": {"bat_avg": 101.0, "bat_sr": 158.94, "bat_runs": 451, "bat_4s": 36, "bat_6s": 18, "bowl_wkts": 3, "bowl_econ": 5.0, "bowl_dots": 12, "role": "allrounder"}, "Shahrukh Khan": {"bat_avg": 21.85, "bat_sr": 134.21, "bat_runs": 153, "bat_4s": 9, "bat_6s": 10, "role": "batter"}, "Evin Lewis": {"bat_avg": 30.2, "bat_sr": 162.36, "bat_runs": 382, "bat_4s": 32, "bat_6s": 24, "role": "batter"}, "Jason Roy": {"bat_avg": 30.0, "bat_sr": 147.5, "bat_runs": 150, "bat_4s": 21, "bat_6s": 7, "role": "batter"}, "Aiden Markram": {"bat_avg": 47.63, "bat_sr": 139.05, "bat_runs": 381, "bat_4s": 25, "bat_6s": 19, "bowl_wkts": 1, "bowl_econ": 5.75, "bowl_dots": 3, "role": "allrounder"}, "Krunal Pandya": {"bat_avg": 39.5, "bat_sr": 191.12, "bat_runs": 243, "bat_4s": 24, "bat_6s": 13, "bowl_wkts": 12, "bowl_econ": 2.33, "bowl_dots": 16, "role": "allrounder"}, "Hardik Pandya": {"bat_avg": 44.66, "bat_sr": 191.42, "bat_runs": 487, "bat_4s": 49, "bat_6s": 29, "bowl_wkts": 18, "bowl_econ": 4.25, "bowl_dots": 14, "role": "allrounder"}, "Abdul Samad": {"bat_avg": 22.2, "bat_sr": 170.76, "bat_runs": 111, "bat_4s": 8, "bat_6s": 8, "bowl_wkts": 1, "bowl_econ": 9.0, "bowl_dots": 1, "role": "allrounder"}, "Abhishek Sharma": {"bat_avg": 63.0, "bat_sr": 190.9, "bat_runs": 426, "bat_4s": 47, "bat_6s": 13, "bowl_wkts": 4, "bowl_econ": 4.5, "bowl_dots": 10, "role": "allrounder"}, "Mahipal Lomror": {"bat_avg": 31.33, "bat_sr": 266.66, "bat_runs": 94, "bat_4s": 7, "bat_6s": 6, "bowl_wkts": 1, "bowl_econ": 6.71, "bowl_dots": 2, "role": "allrounder"}, "Pat Cummins": {"bat_avg": 31.0, "bat_sr": 262.5, "bat_runs": 146, "bat_4s": 9, "bat_6s": 8, "bowl_wkts": 15, "bowl_econ": 4.25, "bowl_dots": 16, "role": "allrounder"}, "Riyan Parag": {"bat_avg": 32.0, "bat_sr": 138.63, "bat_runs": 183, "bat_4s": 17, "bat_6s": 10, "bowl_wkts": 2, "bowl_econ": 8.64, "bowl_dots": 2, "role": "allrounder"}, "Marcus Stoinis": {"bat_avg": 52.75, "bat_sr": 148.52, "bat_runs": 352, "bat_4s": 31, "bat_6s": 16, "bowl_wkts": 13, "bowl_econ": 3.75, "bowl_dots": 13, "role": "allrounder"}, "Nicholas Pooran": {"bat_avg": 38.25, "bat_sr": 169.71, "bat_runs": 353, "bat_4s": 23, "bat_6s": 25, "role": "batter"}, "Rashid Khan": {"bat_avg": 22.75, "bat_sr": 206.81, "bat_runs": 91, "bat_4s": 9, "bat_6s": 9, "bowl_wkts": 21, "bowl_econ": 1.75, "bowl_dots": 18, "role": "allrounder"}, "Priyam Garg": {"bat_avg": 23.0, "bat_sr": 139.39, "bat_runs": 133, "bat_4s": 9, "bat_6s": 4, "role": "batter"}, "Rajat Patidar": {"bat_avg": 55.5, "bat_sr": 152.75, "bat_runs": 333, "bat_4s": 27, "bat_6s": 18, "role": "batter"}, "Lalit Yadav": {"bat_avg": 34.0, "bat_sr": 110.27, "bat_runs": 161, "bat_4s": 11, "bat_6s": 7, "bowl_wkts": 4, "bowl_econ": 4.25, "bowl_dots": 10, "role": "allrounder"}, "Kyle Jamieson": {"bat_avg": 16.25, "bat_sr": 118.18, "bat_runs": 65, "bat_4s": 5, "bat_6s": 3, "bowl_wkts": 9, "bowl_econ": 9.6, "bowl_dots": 13, "role": "allrounder"}, "Harpreet Brar": {"bat_avg": 7.33, "bat_sr": 166.66, "bat_runs": 64, "bat_4s": 3, "bat_6s": 2, "bowl_wkts": 5, "bowl_econ": 4.75, "bowl_dots": 15, "role": "allrounder"}, "Shahbaz Ahmed": {"bat_avg": 27.38, "bat_sr": 120.99, "bat_runs": 219, "bat_4s": 14, "bat_6s": 9, "bowl_wkts": 7, "bowl_econ": 3.5, "bowl_dots": 10, "role": "allrounder"}, "Vijay Shankar": {"bat_avg": 53.0, "bat_sr": 143.24, "bat_runs": 244, "bat_4s": 12, "bat_6s": 12, "bowl_wkts": 4, "bowl_econ": 5.0, "bowl_dots": 13, "role": "allrounder"}, "Sam Curran": {"bat_avg": 23.75, "bat_sr": 193.1, "bat_runs": 186, "bat_4s": 13, "bat_6s": 12, "bowl_wkts": 13, "bowl_econ": 4.0, "bowl_dots": 14, "role": "allrounder"}, "Liam Livingstone": {"bat_avg": 36.42, "bat_sr": 182.08, "bat_runs": 437, "bat_4s": 29, "bat_6s": 34, "bowl_wkts": 6, "bowl_econ": 6.25, "bowl_dots": 8, "role": "allrounder"}, "Mohammad Nabi": {"bat_avg": 19.16, "bat_sr": 170.0, "bat_runs": 115, "bat_4s": 8, "bat_6s": 7, "bowl_wkts": 8, "bowl_econ": 2.75, "bowl_dots": 16, "role": "allrounder"}, "Chris Jordan": {"bat_avg": 16.0, "bat_sr": 152.38, "bat_runs": 32, "bat_4s": 2, "bat_6s": 3, "bowl_wkts": 11, "bowl_econ": 3.66, "bowl_dots": 12, "role": "allrounder"}, "Washington Sundar": {"bat_avg": 21.66, "bat_sr": 171.05, "bat_runs": 111, "bat_4s": 10, "bat_6s": 4, "bowl_wkts": 8, "bowl_econ": 3.0, "bowl_dots": 15, "role": "allrounder"}, "Shivam Mavi": {"bat_avg": 12.5, "bat_sr": 125.0, "bat_runs": 25, "bat_4s": 2, "bat_6s": 2, "bowl_wkts": 11, "bowl_econ": 3.25, "bowl_dots": 17, "role": "allrounder"}, "Tom Curran": {"bat_avg": 83.0, "bat_sr": 133.87, "bat_runs": 83, "bat_4s": 5, "bat_6s": 3, "bowl_wkts": 6, "bowl_econ": 9.17, "role": "allrounder"}, "Mohammed Siraj": {"bat_avg": 20.0, "bat_sr": 121.42, "bat_runs": 30, "bat_4s": 5, "bat_6s": 1, "bowl_wkts": 11, "bowl_econ": 2.0, "bowl_dots": 16, "role": "allrounder"}, "Lockie Ferguson": {"bat_avg": 2.5, "bat_sr": 163.63, "bat_runs": 43, "bat_4s": 4, "bat_6s": 1, "bowl_wkts": 13, "bowl_econ": 1.75, "bowl_dots": 17, "role": "allrounder"}, "Chetan Sakariya": {"bat_avg": 3.2, "bat_sr": 64.0, "bat_runs": 16, "bat_4s": 2, "bat_6s": 0, "bowl_wkts": 14, "bowl_econ": 5.75, "bowl_dots": 13, "role": "allrounder"}, "Chris Woakes": {"bat_avg": 11.5, "bat_sr": 136.36, "bat_runs": 46, "bat_4s": 4, "bat_6s": 1, "bowl_wkts": 17, "bowl_econ": 3.0, "bowl_dots": 15, "role": "allrounder"}, "Murugan Ashwin": {"bat_avg": 7.5, "bat_sr": 100.0, "bat_runs": 15, "bat_4s": 1, "bat_6s": 1, "bowl_wkts": 10, "bowl_econ": 3.5, "bowl_dots": 14, "role": "allrounder"}, "Jagadeesha Suchith": {"bat_avg": 48.0, "bat_sr": 233.33, "bat_runs": 48, "bat_4s": 4, "bat_6s": 2, "bowl_wkts": 10, "bowl_econ": 4.66, "bowl_dots": 12, "role": "allrounder"}, "Rahul Chahar": {"bat_avg": 12.83, "bat_sr": 150.0, "bat_runs": 77, "bat_4s": 7, "bat_6s": 4, "bowl_wkts": 15, "bowl_econ": 3.25, "bowl_dots": 15, "role": "allrounder"}, "Kagiso Rabada": {"bat_avg": 18.33, "bat_sr": 216.66, "bat_runs": 56, "bat_4s": 5, "bat_6s": 2, "bowl_wkts": 30, "bowl_econ": 5.25, "bowl_dots": 15, "role": "allrounder"}, "Mustafizur Rahman": {"bat_avg": 1.0, "bat_sr": 60.0, "bat_runs": 8, "bat_4s": 0, "bat_6s": 1, "bowl_wkts": 17, "bowl_econ": 2.25, "bowl_dots": 17, "role": "allrounder"}, "Sachin Baby": {"bat_avg": 23.8, "bat_sr": 150.63, "bat_runs": 119, "bat_4s": 9, "bat_6s": 5, "bowl_wkts": 2, "bowl_econ": 4.8, "role": "allrounder"}, "Daniel Sams": {"bat_avg": 6.0, "bat_sr": 105.55, "bat_runs": 38, "bat_4s": 1, "bat_6s": 3, "bowl_wkts": 13, "bowl_econ": 4.0, "bowl_dots": 18, "role": "allrounder"}, "Avesh Khan": {"bat_avg": 22.0, "bat_sr": 169.23, "bat_runs": 22, "bat_4s": 1, "bat_6s": 3, "bowl_wkts": 24, "bowl_econ": 3.75, "bowl_dots": 16, "role": "allrounder"}, "Shardul Thakur": {"bat_avg": 15.0, "bat_sr": 300.0, "bat_runs": 120, "bat_4s": 7, "bat_6s": 7, "bowl_wkts": 21, "bowl_econ": 2.75, "bowl_dots": 17, "role": "allrounder"}, "Navdeep Saini": {"bat_avg": 27.0, "bat_sr": 100.0, "bat_runs": 27, "bat_4s": 3, "bat_6s": 0, "bowl_wkts": 11, "bowl_econ": 4.5, "bowl_dots": 16, "role": "allrounder"}, "Kartik Tyagi": {"bat_avg": 4.0, "bat_sr": 116.66, "bat_runs": 7, "bat_4s": 1, "bat_6s": 0, "bowl_wkts": 9, "bowl_econ": 8.85, "bowl_dots": 13, "role": "allrounder"}, "Arshdeep Singh": {"bat_avg": 7.0, "bat_sr": 72.41, "bat_runs": 21, "bat_4s": 3, "bat_6s": 0, "bowl_wkts": 18, "bowl_econ": 3.5, "bowl_dots": 15, "role": "allrounder"}, "Varun Chakaravarthy": {"bat_avg": 5.0, "bat_sr": 66.66, "bat_runs": 12, "bat_4s": 2, "bat_6s": 0, "bowl_wkts": 18, "bowl_econ": 3.25, "bowl_dots": 16, "role": "allrounder"}, "Mujeeb Ur Rahman": {"bat_avg": 10.0, "bat_sr": 142.85, "bat_runs": 10, "bat_4s": 2, "bat_6s": 0, "bowl_wkts": 14, "bowl_econ": 4.25, "bowl_dots": 12, "role": "allrounder"}, "Tim David": {"bat_avg": 37.2, "bat_sr": 216.27, "bat_runs": 186, "bat_4s": 12, "bat_6s": 16, "role": "batter"}, "Khaleel Ahmed": {"bat_avg": 1.0, "bat_sr": 50.0, "bat_runs": 1, "bat_4s": 0, "bat_6s": 0, "bowl_wkts": 19, "bowl_econ": 5.25, "bowl_dots": 14, "role": "allrounder"}, "Wanindu Hasaranga": {"bat_avg": 5.43, "bat_sr": 88.37, "bat_runs": 38, "bat_4s": 4, "bat_6s": 1, "bowl_wkts": 26, "bowl_econ": 3.75, "bowl_dots": 15, "role": "allrounder"}, "Ravi Bishnoi": {"bat_avg": 7.0, "bat_sr": 58.33, "bat_runs": 7, "bat_4s": 1, "bat_6s": 0, "bowl_wkts": 13, "bowl_econ": 3.25, "bowl_dots": 14, "role": "allrounder"}, "Trent Boult": {"bat_avg": 20.0, "bat_sr": 175.0, "bat_runs": 40, "bat_4s": 2, "bat_6s": 1, "bowl_wkts": 25, "bowl_econ": 3.5, "bowl_dots": 17, "role": "allrounder"}, "Deepak Chahar": {"bat_avg": 16.66, "bat_sr": 233.33, "bat_runs": 50, "bat_4s": 1, "bat_6s": 4, "bowl_wkts": 22, "bowl_econ": 3.25, "bowl_dots": 20, "role": "allrounder"}, "Ben Stokes": {"bat_avg": 40.71, "bat_sr": 142.98, "bat_runs": 316, "bat_4s": 36, "bat_6s": 15, "bowl_wkts": 12, "bowl_econ": 3.33, "bowl_dots": 14, "role": "allrounder"}, "Marco Jansen": {"bat_avg": 9.0, "bat_sr": 128.57, "bat_runs": 9, "bat_4s": 0, "bat_6s": 1, "bowl_wkts": 7, "bowl_econ": 6.25, "bowl_dots": 14, "role": "allrounder"}, "Prasidh Krishna": {"bat_avg": 6.0, "bat_sr": 50.0, "bat_runs": 6, "bat_4s": 0, "bat_6s": 0, "bowl_wkts": 19, "bowl_econ": 4.0, "bowl_dots": 17, "role": "allrounder"}, "Sarfaraz Khan": {"bat_avg": 45.0, "bat_sr": 212.9, "bat_runs": 180, "bat_4s": 19, "bat_6s": 4, "bowl_wkts": 0, "bowl_econ": 18.0, "role": "allrounder"}, "Anuj Rawat": {"bat_avg": 16.13, "bat_sr": 109.32, "bat_runs": 129, "bat_4s": 10, "bat_6s": 7, "role": "batter"}, "Hashim Amla": {"bat_avg": 60.0, "bat_sr": 145.83, "bat_runs": 420, "bat_4s": 40, "bat_6s": 17, "role": "batter"}, "Travis Head": {"bat_avg": 30.2, "bat_sr": 139.81, "bat_runs": 151, "bat_4s": 9, "bat_6s": 6, "bowl_wkts": 2, "bowl_econ": 10.12, "role": "allrounder"}, "Pawan Negi": {"bat_avg": 28.5, "bat_sr": 158.9, "bat_runs": 144, "bat_4s": 10, "bat_6s": 7, "bowl_wkts": 16, "bowl_econ": 4.0, "bowl_dots": 17, "role": "allrounder"}, "Sam Billings": {"bat_avg": 24.14, "bat_sr": 138.46, "bat_runs": 169, "bat_4s": 19, "bat_6s": 10, "role": "batter"}, "Martin Guptill": {"bat_avg": 27.0, "bat_sr": 152.83, "bat_runs": 132, "bat_4s": 17, "bat_6s": 7, "role": "batter"}, "Colin de Grandhomme": {"bat_avg": 26.2, "bat_sr": 155.95, "bat_runs": 131, "bat_4s": 10, "bat_6s": 10, "bowl_wkts": 4, "bowl_econ": 4.0, "bowl_dots": 11, "role": "allrounder"}, "Andrew Tye": {"bat_avg": 26.5, "bat_sr": 176.66, "bat_runs": 53, "bat_4s": 4, "bat_6s": 3, "bowl_wkts": 24, "bowl_econ": 3.0, "bowl_dots": 15, "role": "allrounder"}, "Sreenath Aravind": {"bat_avg": 8.0, "bat_sr": 175.0, "bat_runs": 32, "bat_4s": 3, "bat_6s": 0, "bowl_wkts": 21, "bowl_econ": 3.5, "bowl_dots": 14, "role": "allrounder"}, "Basil Thampi": {"bat_avg": 3.0, "bat_sr": 100.0, "bat_runs": 28, "bat_4s": 1, "bat_6s": 1, "bowl_wkts": 11, "bowl_econ": 6.0, "bowl_dots": 11, "role": "allrounder"}, "Kuldeep Yadav": {"bat_avg": 48.0, "bat_sr": 150.0, "bat_runs": 48, "bat_4s": 3, "bat_6s": 2, "bowl_wkts": 21, "bowl_econ": 4.0, "bowl_dots": 13, "role": "allrounder"}, "Mitchell McClenaghan": {"bat_avg": 13.0, "bat_sr": 216.66, "bat_runs": 34, "bat_4s": 2, "bat_6s": 3, "bowl_wkts": 19, "bowl_econ": 4.0, "bowl_dots": 15, "role": "allrounder"}, "Anureet Singh": {"bat_avg": 15.0, "bat_sr": 125.0, "bat_runs": 18, "bat_4s": 2, "bat_6s": 1, "bowl_wkts": 15, "bowl_econ": 5.0, "bowl_dots": 14, "role": "allrounder"}, "Samuel Badree": {"bat_avg": 2.6, "bat_sr": 56.52, "bat_runs": 13, "bat_4s": 0, "bat_6s": 0, "bowl_wkts": 9, "bowl_econ": 2.25, "bowl_dots": 16, "role": "allrounder"}, "Carlos Brathwaite": {"bat_avg": 25.0, "bat_sr": 218.42, "bat_runs": 83, "bat_4s": 6, "bat_6s": 8, "bowl_wkts": 7, "bowl_econ": 4.5, "bowl_dots": 10, "role": "allrounder"}, "Tymal Mills": {"bat_avg": 2.66, "bat_sr": 72.72, "bat_runs": 8, "bat_4s": 0, "bat_6s": 1, "bowl_wkts": 6, "bowl_econ": 8.57, "bowl_dots": 13, "role": "allrounder"}, "Adam Zampa": {"bat_avg": 5.0, "bat_sr": 71.42, "bat_runs": 5, "bat_4s": 1, "bat_6s": 0, "bowl_wkts": 12, "bowl_econ": 3.0, "bowl_dots": 14, "role": "allrounder"}, "Ankit Rajpoot": {"bat_avg": 9.0, "bat_sr": 90.0, "bat_runs": 11, "bat_4s": 1, "bat_6s": 1, "bowl_wkts": 11, "bowl_econ": 3.5, "bowl_dots": 18, "role": "allrounder"}, "Akshdeep Nath": {"bat_avg": 12.2, "bat_sr": 107.01, "bat_runs": 61, "bat_4s": 5, "bat_6s": 2, "role": "batter"}, "James Hopes": {"bat_avg": 39.2, "bat_sr": 149.32, "bat_runs": 221, "bat_4s": 27, "bat_6s": 8, "bowl_wkts": 7, "bowl_econ": 8.5, "role": "allrounder"}, "Ashok Menaria": {"bat_avg": 20.0, "bat_sr": 118.42, "bat_runs": 220, "bat_4s": 14, "bat_6s": 10, "bowl_wkts": 2, "bowl_econ": 5.0, "bowl_dots": 10, "role": "allrounder"}, "Aiden Blizzard": {"bat_avg": 20.0, "bat_sr": 137.93, "bat_runs": 120, "bat_4s": 21, "bat_6s": 2, "role": "batter"}, "Yogesh Nagar": {"bat_avg": 30.4, "bat_sr": 114.28, "bat_runs": 152, "bat_4s": 13, "bat_6s": 6, "bowl_wkts": 1, "bowl_econ": 10.0, "role": "allrounder"}, "James Franklin": {"bat_avg": 53.5, "bat_sr": 137.17, "bat_runs": 220, "bat_4s": 15, "bat_6s": 6, "bowl_wkts": 6, "bowl_econ": 8.06, "role": "allrounder"}, "Davy Jacobs": {"bat_avg": 15.33, "bat_sr": 104.54, "bat_runs": 92, "bat_4s": 10, "bat_6s": 4, "role": "batter"}, "Travis Birt": {"bat_avg": 15.0, "bat_sr": 129.31, "bat_runs": 75, "bat_4s": 9, "bat_6s": 2, "role": "batter"}, "Michael Klinger": {"bat_avg": 18.25, "bat_sr": 94.8, "bat_runs": 73, "bat_4s": 9, "bat_6s": 0, "role": "batter"}, "Matthew Wade": {"bat_avg": 15.7, "bat_sr": 113.76, "bat_runs": 157, "bat_4s": 23, "bat_6s": 2, "role": "batter"}, "Colin Ingram": {"bat_avg": 18.4, "bat_sr": 119.48, "bat_runs": 184, "bat_4s": 20, "bat_6s": 5, "role": "batter"}, "Jofra Archer": {"bat_avg": 33.5, "bat_sr": 179.36, "bat_runs": 113, "bat_4s": 5, "bat_6s": 10, "bowl_wkts": 20, "bowl_econ": 3.75, "bowl_dots": 16, "role": "allrounder"}, "Josh Philippe": {"bat_avg": 19.5, "bat_sr": 101.29, "bat_runs": 78, "bat_4s": 9, "bat_6s": 1, "role": "batter"}, "Krishnappa Gowtham": {"bat_avg": 42.0, "bat_sr": 196.87, "bat_runs": 126, "bat_4s": 9, "bat_6s": 9, "bowl_wkts": 11, "bowl_econ": 3.0, "bowl_dots": 15, "role": "allrounder"}, "Isuru Udana": {"bat_avg": 5.0, "bat_sr": 136.36, "bat_runs": 15, "bat_4s": 1, "bat_6s": 1, "bowl_wkts": 8, "bowl_econ": 9.72, "role": "allrounder"}, "James Pattinson": {"bat_avg": 15.0, "bat_sr": 115.38, "bat_runs": 15, "bat_4s": 2, "bat_6s": 0, "bowl_wkts": 11, "bowl_econ": 6.0, "bowl_dots": 13, "role": "allrounder"}, "Rinku Singh": {"bat_avg": 34.8, "bat_sr": 148.71, "bat_runs": 174, "bat_4s": 17, "bat_6s": 7, "role": "batter"}, "Anrich Nortje": {"bat_avg": 7.0, "bat_sr": 116.66, "bat_runs": 7, "bat_4s": 0, "bat_6s": 0, "bowl_wkts": 22, "bowl_econ": 3.0, "bowl_dots": 15, "role": "allrounder"}, "T Natarajan": {"bat_avg": 0, "bat_sr": 60.0, "bat_runs": 3, "bat_4s": 0, "bat_6s": 0, "bowl_wkts": 18, "bowl_econ": 2.75, "bowl_dots": 16, "role": "allrounder"}, "Sheldon Cottrell": {"bat_avg": 0, "bat_sr": 0, "bat_runs": 0, "bat_4s": 0, "bat_6s": 0, "bowl_wkts": 6, "bowl_econ": 5.0, "bowl_dots": 14, "role": "bowler"}, "Stephen Fleming": {"bat_avg": 21.77, "bat_sr": 119.51, "bat_runs": 196, "bat_4s": 27, "bat_6s": 3, "role": "batter"}, "Salman Butt": {"bat_avg": 27.57, "bat_sr": 119.87, "bat_runs": 193, "bat_4s": 30, "bat_6s": 2, "role": "batter"}, "Shaun Pollock": {"bat_avg": 18.37, "bat_sr": 132.43, "bat_runs": 147, "bat_4s": 12, "bat_6s": 8, "bowl_wkts": 11, "bowl_econ": 2.25, "bowl_dots": 17, "role": "allrounder"}, "Vidyut Sivaramakrishnan": {"bat_avg": 18.12, "bat_sr": 133.02, "bat_runs": 145, "bat_4s": 21, "bat_6s": 3, "bowl_wkts": 1, "bowl_econ": 11.0, "role": "allrounder"}, "Kamran Akmal": {"bat_avg": 25.6, "bat_sr": 164.1, "bat_runs": 128, "bat_4s": 13, "bat_6s": 8, "role": "batter"}, "Misbah-ul-Haq": {"bat_avg": 16.71, "bat_sr": 144.44, "bat_runs": 117, "bat_4s": 10, "bat_6s": 6, "role": "batter"}, "Shahid Afridi": {"bat_avg": 10.12, "bat_sr": 176.08, "bat_runs": 81, "bat_4s": 7, "bat_6s": 6, "bowl_wkts": 9, "bowl_econ": 5.0, "bowl_dots": 9, "role": "allrounder"}, "Ramnaresh Sarwan": {"bat_avg": 18.25, "bat_sr": 97.33, "bat_runs": 73, "bat_4s": 6, "bat_6s": 1, "role": "batter"}, "Shoaib Malik": {"bat_avg": 13.0, "bat_sr": 110.63, "bat_runs": 52, "bat_4s": 5, "bat_6s": 0, "bowl_wkts": 2, "bowl_econ": 10.0, "role": "allrounder"}, "Umar Gul": {"bat_avg": 13.0, "bat_sr": 205.26, "bat_runs": 39, "bat_4s": 1, "bat_6s": 5, "bowl_wkts": 12, "bowl_econ": 5.75, "bowl_dots": 13, "role": "allrounder"}, "Sohail Tanvir": {"bat_avg": 12.0, "bat_sr": 124.13, "bat_runs": 36, "bat_4s": 3, "bat_6s": 1, "bowl_wkts": 22, "bowl_econ": 2.5, "bowl_dots": 18, "role": "allrounder"}, "Yo Mahesh": {"bat_avg": 7.5, "bat_sr": 55.55, "bat_runs": 15, "bat_4s": 0, "bat_6s": 0, "bowl_wkts": 16, "bowl_econ": 5.25, "bowl_dots": 13, "role": "allrounder"}, "Makhaya Ntini": {"bat_avg": 11.0, "bat_sr": 61.11, "bat_runs": 11, "bat_4s": 2, "bat_6s": 0, "bowl_wkts": 7, "bowl_econ": 5.25, "bowl_dots": 14, "role": "allrounder"}, "Vikram Singh": {"bat_avg": 2.0, "bat_sr": 133.33, "bat_runs": 4, "bat_4s": 1, "bat_6s": 0, "bowl_wkts": 11, "bowl_econ": 3.75, "bowl_dots": 11, "role": "allrounder"}, "Glenn McGrath": {"bat_avg": 4.0, "bat_sr": 80.0, "bat_runs": 4, "bat_4s": 1, "bat_6s": 0, "bowl_wkts": 12, "bowl_econ": 3.0, "bowl_dots": 16, "role": "allrounder"}, "Mohammad Asif": {"bat_avg": 1.5, "bat_sr": 50.0, "bat_runs": 3, "bat_4s": 0, "bat_6s": 0, "bowl_wkts": 8, "bowl_econ": 4.75, "bowl_dots": 16, "role": "allrounder"}, "Usman Khawaja": {"bat_avg": 21.16, "bat_sr": 127.0, "bat_runs": 127, "bat_4s": 14, "bat_6s": 3, "role": "batter"}, "Colin Munro": {"bat_avg": 21.0, "bat_sr": 153.65, "bat_runs": 84, "bat_4s": 9, "bat_6s": 4, "bowl_wkts": 0, "bowl_econ": 7.5, "role": "allrounder"}, "David Wiese": {"bat_avg": 30.5, "bat_sr": 141.86, "bat_runs": 122, "bat_4s": 12, "bat_6s": 4, "bowl_wkts": 16, "bowl_econ": 5.4, "bowl_dots": 8, "role": "allrounder"}, "Barinder Sran": {"bat_avg": 3.0, "bat_sr": 100.0, "bat_runs": 4, "bat_4s": 0, "bat_6s": 0, "bowl_wkts": 14, "bowl_econ": 5.14, "bowl_dots": 13, "role": "allrounder"}, "Shivil Kaushik": {"bat_avg": 0, "bat_sr": 0, "bat_runs": 0, "bat_4s": 0, "bat_6s": 0, "bowl_wkts": 6, "bowl_econ": 5.0, "bowl_dots": 11, "role": "bowler"}, "Nitin Saini": {"bat_avg": 14.0, "bat_sr": 99.29, "bat_runs": 140, "bat_4s": 16, "bat_6s": 0, "role": "batter"}, "Daniel Harris": {"bat_avg": 27.75, "bat_sr": 109.9, "bat_runs": 111, "bat_4s": 11, "bat_6s": 5, "bowl_wkts": 0, "bowl_econ": 8.66, "role": "allrounder"}, "Michael Clarke": {"bat_avg": 16.33, "bat_sr": 105.37, "bat_runs": 98, "bat_4s": 12, "bat_6s": 0, "bowl_wkts": 2, "bowl_econ": 4.5, "bowl_dots": 3, "role": "allrounder"}, "Anustup Majumdar": {"bat_avg": 21.75, "bat_sr": 114.47, "bat_runs": 87, "bat_4s": 7, "bat_6s": 2, "role": "batter"}, "Richard Levi": {"bat_avg": 13.83, "bat_sr": 113.69, "bat_runs": 83, "bat_4s": 10, "bat_6s": 4, "role": "batter"}, "Alfonso Thomas": {"bat_avg": 9.5, "bat_sr": 126.66, "bat_runs": 19, "bat_4s": 1, "bat_6s": 1, "bowl_wkts": 11, "bowl_econ": 4.0, "bowl_dots": 14, "role": "allrounder"}, "Harmeet Singh Bansal": {"bat_avg": 15.0, "bat_sr": 214.28, "bat_runs": 15, "bat_4s": 3, "bat_6s": 0, "bowl_wkts": 8, "bowl_econ": 5.0, "bowl_dots": 13, "role": "allrounder"}, "Brad Hogg": {"bat_avg": 7.5, "bat_sr": 116.66, "bat_runs": 15, "bat_4s": 1, "bat_6s": 0, "bowl_wkts": 10, "bowl_econ": 4.25, "bowl_dots": 16, "role": "allrounder"}, "Ankeet Chavan": {"bat_avg": 11.0, "bat_sr": 137.5, "bat_runs": 11, "bat_4s": 2, "bat_6s": 0, "bowl_wkts": 7, "bowl_econ": 3.33, "bowl_dots": 14, "role": "allrounder"}, "Bhargav Bhatt": {"bat_avg": 0, "bat_sr": 300.0, "bat_runs": 6, "bat_4s": 0, "bat_6s": 1, "bowl_wkts": 9, "bowl_econ": 6.4, "bowl_dots": 11, "role": "allrounder"}, "Parvinder Awana": {"bat_avg": 0, "bat_sr": 80.0, "bat_runs": 4, "bat_4s": 0, "bat_6s": 0, "bowl_wkts": 17, "bowl_econ": 3.0, "bowl_dots": 15, "role": "allrounder"}, "K L Rahul": {"bat_avg": 51.33, "bat_sr": 135.38, "bat_runs": 616, "bat_4s": 45, "bat_6s": 30, "role": "batter"}, "Quinton De Kock": {"bat_avg": 36.29, "bat_sr": 148.97, "bat_runs": 508, "bat_4s": 47, "bat_6s": 23, "role": "batter"}, "Faf Du Plessis": {"bat_avg": 31.2, "bat_sr": 127.52, "bat_runs": 468, "bat_4s": 49, "bat_6s": 13, "role": "batter"}, "Tilak Varma": {"bat_avg": 36.09, "bat_sr": 131.02, "bat_runs": 397, "bat_4s": 29, "bat_6s": 16, "bowl_dots": 3, "role": "batter"}, "Devon Conway": {"bat_avg": 42.0, "bat_sr": 145.66, "bat_runs": 252, "bat_4s": 22, "bat_6s": 12, "role": "batter"}, "Rovman Powell": {"bat_avg": 25.0, "bat_sr": 149.7, "bat_runs": 250, "bat_4s": 10, "bat_6s": 22, "bowl_dots": 0, "role": "batter"}, "Jitesh Sharma": {"bat_avg": 29.25, "bat_sr": 163.63, "bat_runs": 234, "bat_4s": 22, "bat_6s": 12, "role": "batter"}, "Bhanuka Rajapaksa": {"bat_avg": 22.89, "bat_sr": 159.68, "bat_runs": 206, "bat_4s": 16, "bat_6s": 13, "role": "batter"}, "Dewald Brevis": {"bat_avg": 23.0, "bat_sr": 142.47, "bat_runs": 161, "bat_4s": 14, "bat_6s": 11, "bowl_wkts": 1, "bowl_econ": 16.0, "bowl_dots": 1, "role": "allrounder"}, "Ayush Badoni": {"bat_avg": 20.13, "bat_sr": 123.84, "bat_runs": 161, "bat_4s": 11, "bat_6s": 7, "bowl_wkts": 2, "bowl_econ": 5.5, "bowl_dots": 3, "role": "allrounder"}, "Sai Sudharsan": {"bat_avg": 36.25, "bat_sr": 127.19, "bat_runs": 145, "bat_4s": 14, "bat_6s": 3, "role": "batter"}, "Abhinav Manohar": {"bat_avg": 18.0, "bat_sr": 144.0, "bat_runs": 108, "bat_4s": 14, "bat_6s": 3, "role": "batter"}, "Shashank Singh": {"bat_avg": 17.25, "bat_sr": 146.8, "bat_runs": 69, "bat_4s": 5, "bat_6s": 4, "bowl_dots": 1, "role": "batter"}, "Suyash S Prabhudessai": {"bat_avg": 13.4, "bat_sr": 113.55, "bat_runs": 67, "bat_4s": 7, "bat_6s": 2, "role": "batter"}, "Romario Shepherd": {"bat_avg": 29.0, "bat_sr": 141.46, "bat_runs": 58, "bat_4s": 2, "bat_6s": 5, "bowl_wkts": 3, "bowl_econ": 8.25, "bowl_dots": 12, "role": "allrounder"}, "Odean Smith": {"bat_avg": 17.0, "bat_sr": 115.9, "bat_runs": 51, "bat_4s": 1, "bat_6s": 5, "bowl_wkts": 6, "bowl_econ": 11.86, "bowl_dots": 9, "role": "allrounder"}, "Ramandeep Singh": {"bat_avg": 22.5, "bat_sr": 112.5, "bat_runs": 45, "bat_4s": 3, "bat_6s": 1, "bowl_wkts": 6, "bowl_econ": 9.0, "bowl_dots": 5, "role": "allrounder"}, "Dwaine Pretorius": {"bat_avg": 11.0, "bat_sr": 157.14, "bat_runs": 44, "bat_4s": 3, "bat_6s": 3, "bowl_wkts": 6, "bowl_econ": 7.5, "bowl_dots": 11, "role": "allrounder"}, "Dushmantha Chameera": {"bat_avg": 10.75, "bat_sr": 153.57, "bat_runs": 43, "bat_4s": 3, "bat_6s": 3, "bowl_wkts": 9, "bowl_econ": 3.5, "bowl_dots": 17, "role": "allrounder"}, "Sherfane Rutherford": {"bat_avg": 16.5, "bat_sr": 135.18, "bat_runs": 73, "bat_4s": 2, "bat_6s": 7, "bowl_wkts": 1, "bowl_econ": 8.63, "role": "allrounder"}, "Mohsin Khan": {"bat_avg": 23.0, "bat_sr": 143.75, "bat_runs": 23, "bat_4s": 2, "bat_6s": 1, "bowl_wkts": 14, "bowl_econ": 4.0, "bowl_dots": 16, "role": "allrounder"}, "Josh Hazlewood": {"bat_avg": 0, "bat_sr": 69.23, "bat_runs": 18, "bat_4s": 1, "bat_6s": 0, "bowl_wkts": 20, "bowl_econ": 4.25, "bowl_dots": 16, "role": "allrounder"}, "Obed McCoy": {"bat_avg": 8.0, "bat_sr": 160.0, "bat_runs": 8, "bat_4s": 0, "bat_6s": 1, "bowl_wkts": 11, "bowl_econ": 5.0, "bowl_dots": 11, "role": "allrounder"}, "Maheesh Theekshana": {"bat_avg": 7.0, "bat_sr": 100.0, "bat_runs": 7, "bat_4s": 0, "bat_6s": 1, "bowl_wkts": 12, "bowl_econ": 6.0, "bowl_dots": 13, "role": "allrounder"}, "Mukesh Choudhary": {"bat_avg": 6.0, "bat_sr": 100.0, "bat_runs": 6, "bat_4s": 1, "bat_6s": 0, "bowl_wkts": 16, "bowl_econ": 5.75, "bowl_dots": 17, "role": "allrounder"}, "Alzarri Joseph": {"bat_avg": 5.0, "bat_sr": 115.38, "bat_runs": 15, "bat_4s": 2, "bat_6s": 0, "bowl_wkts": 7, "bowl_econ": 3.27, "bowl_dots": 16, "role": "allrounder"}, "Umran Malik": {"bat_avg": 4.0, "bat_sr": 50.0, "bat_runs": 4, "bat_4s": 0, "bat_6s": 0, "bowl_wkts": 22, "bowl_econ": 3.25, "bowl_dots": 19, "role": "allrounder"}, "Alex Hales": {"bat_avg": 24.66, "bat_sr": 125.42, "bat_runs": 148, "bat_4s": 13, "bat_6s": 6, "role": "batter"}, "D'Arcy Short": {"bat_avg": 16.42, "bat_sr": 116.16, "bat_runs": 115, "bat_4s": 11, "bat_6s": 5, "bowl_wkts": 1, "bowl_econ": 4.5, "bowl_dots": 7, "role": "allrounder"}, "Heinrich Klaasen": {"bat_avg": 19.0, "bat_sr": 121.27, "bat_runs": 57, "bat_4s": 5, "bat_6s": 1, "role": "batter"}, "Mayank Markande": {"bat_avg": 10.5, "bat_sr": 120.0, "bat_runs": 21, "bat_4s": 2, "bat_6s": 0, "bowl_wkts": 15, "bowl_econ": 5.0, "bowl_dots": 11, "role": "allrounder"}, "Keemo Paul": {"bat_avg": 3.6, "bat_sr": 75.0, "bat_runs": 18, "bat_4s": 1, "bat_6s": 1, "bowl_wkts": 9, "bowl_econ": 4.25, "bowl_dots": 10, "role": "allrounder"}, "Hardus Viljoen": {"bat_avg": 1.5, "bat_sr": 42.85, "bat_runs": 3, "bat_4s": 0, "bat_6s": 0, "bowl_wkts": 7, "bowl_econ": 9.65, "bowl_dots": 11, "role": "allrounder"}, "Harry Gurney": {"bat_avg": 0, "bat_sr": 20.0, "bat_runs": 1, "bat_4s": 0, "bat_6s": 0, "bowl_wkts": 7, "bowl_econ": 8.81, "role": "allrounder"}, "Sandeep Lamichhane": {"bat_avg": 0, "bat_sr": 0, "bat_runs": 0, "bat_4s": 0, "bat_6s": 0, "bowl_wkts": 8, "bowl_econ": 5.25, "bowl_dots": 12, "role": "bowler"}, "Palani Amarnath": {"bowl_wkts": 7, "bowl_econ": 10.72, "role": "bowler"}, "Lungi Ngidi": {"bowl_wkts": 11, "bowl_econ": 2.5, "bowl_dots": 16, "role": "bowler"}, "Ben Hilfenhaus": {"bowl_wkts": 14, "bowl_econ": 2.0, "bowl_dots": 15, "role": "bowler"}, "Veer Pratap Singh": {"bowl_wkts": 10, "bowl_econ": 8.7, "bowl_dots": 11, "role": "bowler"}, "Yash Dayal": {"bowl_wkts": 11, "bowl_econ": 6.0, "bowl_dots": 13, "role": "bowler"}, "Riley Meredith": {"bowl_wkts": 8, "bowl_econ": 5.72, "bowl_dots": 14, "role": "bowler"}, "Kuldeep Sen": {"bowl_wkts": 8, "bowl_econ": 8.75, "bowl_dots": 12, "role": "bowler"}, "Sai Kishore": {"bowl_wkts": 6, "bowl_econ": 5.0, "bowl_dots": 8, "role": "bowler"}, "Yusuf Abdulla": {"bowl_wkts": 14, "bowl_econ": 4.75, "bowl_dots": 15, "role": "bowler"}, "Ishwar Pandey": {"bowl_wkts": 11, "bowl_econ": 5.25, "bowl_dots": 15, "role": "bowler"}, "Suraj Randiv": {"bowl_wkts": 6, "bowl_econ": 7.68, "bowl_dots": 11, "role": "bowler"}};
+
+const ALL_PLAYERS = Object.keys(PLAYER_STATS).sort();
+
+// ========== STATE ==========
+let state = {
+  teamA:[],teamB:[],
+  teamAName:'',teamBName:'',
+  battingTeam:'A',fieldingTeam:'B',
+  venue:'',matchType:'T20',maxOvers:20,
+  runs:0,wickets:0,balls:0,
+  overHistory:[],
+  currentOver:0,
+  strikerIdx:0,nonStrikerIdx:1,
+  nextBatterIdx:2,
+  bowlingFigures:{},
+  alerts:[],
+  winProb:50
+};
+
+// ========== SETUP ==========
+function buildPlayerSelects(){
+  ['team-a','team-b'].forEach((prefix,ti)=>{
+    const container = document.getElementById(prefix+'-players');
+    container.innerHTML='';
+    for(let i=0;i<11;i++){
+      const slot = document.createElement('div');
+      slot.className='player-slot';
+      slot.innerHTML=`<span class="slot-num">${i+1}.</span>`;
+      const sel = document.createElement('select');
+      sel.id=`${prefix}-p${i}`;
+      sel.style.cssText='width:100%;background:#1c2433;border:1px solid #243650;border-radius:5px;color:#e8f4f8;font-size:0.78rem;padding:5px 6px;outline:none;';
+      ALL_PLAYERS.forEach(p=>{
+        const opt=document.createElement('option');
+        opt.value=p;opt.textContent=p;
+        sel.appendChild(opt);
+      });
+      // Set sensible defaults
+      const defaults=[['Rohit Sharma','Ishan Kishan','Suryakumar Yadav','Hardik Pandya','Kieron Pollard','Krunal Pandya','Dwayne Bravo','Jasprit Bumrah','Trent Boult','Lasith Malinga','Mitchell McClenaghan'],
+                       ['Ruturaj Gaikwad','Devon Conway','Faf du Plessis','Ambati Rayudu','MS Dhoni','Ravindra Jadeja','Moeen Ali','Deepak Chahar','Imran Tahir','Yuzvendra Chahal','Shardul Thakur']];
+      const def=defaults[ti][i];
+      if(def && ALL_PLAYERS.includes(def)) sel.value=def;
+      slot.appendChild(sel);
+      container.appendChild(slot);
+    }
+  });
+}
+
+// Sync team names to toss dropdown
+document.getElementById('team-a-name').addEventListener('input',function(){
+  document.getElementById('toss-opt-a').textContent=this.value||'Team A';
+  document.getElementById('team-a-label').textContent=(this.value||'Team A')+' — Playing XI';
+});
+document.getElementById('team-b-name').addEventListener('input',function(){
+  document.getElementById('toss-opt-b').textContent=this.value||'Team B';
+  document.getElementById('team-b-label').textContent=(this.value||'Team B')+' — Playing XI';
+});
+
+function launchDashboard(){
+  state.teamAName=document.getElementById('team-a-name').value||'Team A';
+  state.teamBName=document.getElementById('team-b-name').value||'Team B';
+  state.matchType="T20";
+  state.maxOvers=20;
+  state.venue=document.getElementById('venue').value;
+
+  const tossWon=document.getElementById('toss-won').value;
+  const dec=document.getElementById('toss-decision').value;
+  if((tossWon===state.teamAName&&dec==='bat')||(tossWon===state.teamBName&&dec==='field')){
+    state.battingTeam='A';state.fieldingTeam='B';
+  } else {state.battingTeam='B';state.fieldingTeam='A';}
+
+  state.teamA=[];state.teamB=[];
+  for(let i=0;i<11;i++){
+    state.teamA.push(document.getElementById(`team-a-p${i}`).value);
+    state.teamB.push(document.getElementById(`team-b-p${i}`).value);
+  }
+
+  // Reset match state
+  state.runs=0;state.wickets=0;state.balls=0;
+  state.overHistory=[];state.currentOver=0;
+  state.strikerIdx=0;state.nonStrikerIdx=1;state.nextBatterIdx=2;
+  state.bowlingFigures={};state.alerts=[];state.winProb=50;
+
+  document.getElementById('setup-screen').style.display='none';
+  document.getElementById('dashboard').style.display='flex';
+
+  buildDashboard();
+  buildBowlerSelect();
+  buildBallInputs();
+  updateAllDisplays();
+}
+
+function goSetup(){
+  document.getElementById('dashboard').style.display='none';
+  document.getElementById('setup-screen').style.display='flex';
+}
+
+// ========== HELPERS ==========
+function getBattingTeamPlayers(){return state.battingTeam==='A'?state.teamA:state.teamB;}
+function getFieldingTeamPlayers(){return state.battingTeam==='A'?state.teamB:state.teamA;}
+function getBattingTeamName(){return state.battingTeam==='A'?state.teamAName:state.teamBName;}
+function getFieldingTeamName(){return state.battingTeam==='A'?state.teamBName:state.teamAName;}
+function getPlayerStat(name){return PLAYER_STATS[name]||{};}
+function getRole(name){return (getPlayerStat(name).role)||'batter';}
+
+function getBallClass(v){
+  const s=String(v).toUpperCase().trim();
+  if(s==='W')return 'ball-W';
+  if(s==='WB'||s==='NB')return 'ball-W-extra';
+  if(s==='WD'||s==='LB')return 'ball-extra';
+  if(s==='4')return 'ball-4';
+  if(s==='6')return 'ball-6';
+  if(s==='0'||s==='.')return 'ball-0';
+  return 'ball-run';
+}
+
+function parseBallRuns(v){
+  const s=String(v).toUpperCase().trim();
+  if(!s||s==='.')return 0;
+  if(s==='W')return 0;
+  if(s==='WB')return 1;
+  if(s==='NB')return 1;
+  if(s==='WD')return 1;
+  if(s==='LB')return 1;
+  const n=parseInt(s);
+  return isNaN(n)?0:n;
+}
+
+function isWicket(v){
+  const s=String(v).toUpperCase().trim();
+  return s==='W'||s==='WB';
+}
+
+function isLegalBall(v){
+  const s=String(v).toUpperCase().trim();
+  return s!=='WD'&&s!=='NB';
+}
+
+// ========== BATTING ORDER LIST ==========
+function buildDashboard(){
+  document.getElementById('db-match-title').textContent=`${state.teamAName} vs ${state.teamBName}`;
+  document.getElementById('db-match-meta').textContent=`T20 · ${state.venue} · Innings 1`;
+  document.getElementById('batting-panel-title').textContent=`${getBattingTeamName()} — Batting`;
+  document.getElementById('batting-team-name-prob').textContent=getBattingTeamName();
+  updateBattingOrder();
+}
+
+function getPlayerBadge(name){
+  const r=getRole(name);
+  if(r==='allrounder')return '<span class="bat-badge badge-all">ALL</span>';
+  if(r==='bowler')return '<span class="bat-badge badge-bowl">BWL</span>';
+  return '<span class="bat-badge badge-bat">BAT</span>';
+}
+
+function updateBattingOrder(){
+  const list=document.getElementById('batting-order-list');
+  list.innerHTML='';
+  const batters=getBattingTeamPlayers();
+  const recs=getNextBatterRecs();
+
+  batters.forEach((name,i)=>{
+    const div=document.createElement('div');
+    div.className='batting-item';
+    const s=getPlayerStat(name);
+    const isStriker=i===state.strikerIdx;
+    const isNonStriker=i===state.nonStrikerIdx;
+    const isDone=state.wickets>0&&i<state.strikerIdx&&i!==state.nonStrikerIdx;
+    const isRec=recs[0]===i||recs[1]===i;
+
+    if(isStriker||isNonStriker){div.classList.add('at-crease');}
+    else if(isDone){div.classList.add('batting-done');}
+    else if(isRec&&i>=state.nextBatterIdx){div.classList.add('recommended');}
+
+    let statusText='';
+    if(isStriker)statusText='<span class="bat-badge badge-playing">★ ON</span>';
+    else if(isNonStriker)statusText='<span class="bat-badge" style="background:#0a2030;color:#7aaabb;">ON</span>';
+    else if(isRec&&i>=state.nextBatterIdx)statusText='<span class="rec-arrow">↑</span>';
+
+    div.innerHTML=`
+      <span class="bat-pos">${i+1}</span>
+      <span class="bat-name">${name}</span>
+      ${getPlayerBadge(name)}
+      <div class="bat-stats">${s.bat_avg?'Avg '+s.bat_avg.toFixed(0):''}${s.bat_sr?'<br>SR '+s.bat_sr.toFixed(0):''}</div>
+      ${statusText}
+    `;
+    list.appendChild(div);
+  });
+}
+
+// ========== BOWLER SELECT ==========
+function buildBowlerSelect(){
+  const sel=document.getElementById('bowler-select');
+  sel.innerHTML='';
+  const fielders=getFieldingTeamPlayers();
+  fielders.forEach(name=>{
+    const s=getPlayerStat(name);
+    if(s.bowl_wkts>0||s.bowl_econ>0||s.role==='bowler'||s.role==='allrounder'){
+      const opt=document.createElement('option');
+      opt.value=name;
+      opt.textContent=`${name} (Econ: ${s.bowl_econ?s.bowl_econ.toFixed(1):'?'})`;
+      sel.appendChild(opt);
+    }
+  });
+  // fallback: add all
+  if(sel.options.length===0){
+    fielders.forEach(name=>{
+      const opt=document.createElement('option');opt.value=name;opt.textContent=name;sel.appendChild(opt);
+    });
+  }
+  // Pre-select recommended
+  updateBowlerSelectHighlight();
+}
+
+function updateBowlerSelectHighlight(){
+  const rec=getBowlerRec()[0];
+  if(rec){
+    const sel=document.getElementById('bowler-select');
+    for(let o of sel.options){if(o.value===rec.name){sel.value=rec.name;break;}}
+  }
+}
+
+// ========== BALL INPUTS ==========
+function buildBallInputs(){
+  const grid=document.getElementById('ball-inputs-grid');
+  const lgrid=document.getElementById('ball-labels-grid');
+  grid.innerHTML='';lgrid.innerHTML='';
+  const labels=['B1','B2','B3','B4','B5','B6','EX'];
+  for(let i=0;i<7;i++){
+    const inp=document.createElement('input');
+    inp.type='text';inp.className='ball-input';inp.maxLength=2;
+    inp.id=`ball-${i}`;inp.placeholder=i<6?'0':'—';
+    if(i===6){inp.placeholder='WD/NB';inp.style.color='#aaff00';}
+    inp.addEventListener('input',()=>colorBallInput(inp));
+    grid.appendChild(inp);
+    const lbl=document.createElement('div');
+    lbl.className='ball-label';lbl.textContent=labels[i];
+    lgrid.appendChild(lbl);
+  }
+}
+
+function colorBallInput(inp){
+  const cls=getBallClass(inp.value);
+  inp.style.borderColor=cls==='ball-W'?'#ff3d3d':cls==='ball-4'?'#00aaff':cls==='ball-6'?'#aa00ff':cls==='ball-extra'?'#aaff00':'#243650';
+}
+
+// ========== SUBMIT OVER ==========
+function submitOver(){
+  const overs=state.currentOver+1;
+  if(overs>state.maxOvers){alert('Match complete!');return;}
+
+  const bowlerName=document.getElementById('bowler-select').value;
+  const balls=[];
+  let overRuns=0,overWkts=0,legalBalls=0;
+
+  for(let i=0;i<7;i++){
+    const val=document.getElementById(`ball-${i}`).value.trim();
+    if(!val&&i<6){balls.push('0');} // default empty = dot
+    else if(val){balls.push(val);}
+  }
+
+  balls.forEach(v=>{
+    const r=parseBallRuns(v);
+    const w=isWicket(v);
+    const leg=isLegalBall(v);
+    overRuns+=r;
+    if(w){overWkts++;state.wickets++;}
+    if(leg)legalBalls++;
+    state.runs+=r;
+    if(leg)state.balls++;
+  });
+
+  // Update bowling figures
+  if(!state.bowlingFigures[bowlerName]) state.bowlingFigures[bowlerName]={overs:0,runs:0,wkts:0};
+  state.bowlingFigures[bowlerName].overs+=1;
+  state.bowlingFigures[bowlerName].runs+=overRuns;
+  state.bowlingFigures[bowlerName].wkts+=overWkts;
+
+  state.overHistory.push({over:overs,balls,runs:overRuns,wkts:overWkts,bowler:bowlerName});
+  state.currentOver++;
+
+  // Update batter positions
+  const oddRuns=(overRuns%2===1);
+  if(oddRuns){const tmp=state.strikerIdx;state.strikerIdx=state.nonStrikerIdx;state.nonStrikerIdx=tmp;}
+  if(overWkts>0){
+    for(let w=0;w<overWkts;w++){
+      if(state.nextBatterIdx<getBattingTeamPlayers().length){
+        state.strikerIdx=state.nextBatterIdx++;
+      }
+    }
+  }
+  // End of over swap
+  const tmp=state.strikerIdx;state.strikerIdx=state.nonStrikerIdx;state.nonStrikerIdx=tmp;
+
+  updateAllDisplays();
+  buildBallInputs();
+  updateBowlerSelectHighlight();
+}
+
+// ========== DISPLAYS ==========
+function updateAllDisplays(){
+  updateScoreboard();
+  updateBattingOrder();
+  updateOverHistory();
+  updateRecs();
+  updateBowlingFigures();
+  updateAlerts();
+  updateMomentumChart();
+
+  const over=state.currentOver+1;
+  document.getElementById('over-input-title').textContent=`Enter Over ${Math.min(over,state.maxOvers)}`;
+  const ballsLeft=(state.maxOvers-state.currentOver)*6;
+  document.getElementById('balls-remaining-display').textContent=`${Math.max(0,ballsLeft)} balls left`;
+}
+
+function updateScoreboard(){
+  document.getElementById('score-display').textContent=`${state.runs}/${state.wickets}`;
+  const ov=Math.floor(state.balls/6);const bl=state.balls%6;
+  document.getElementById('overs-display').textContent=`${ov}.${bl} Ov`;
+  const crr=state.balls>0?(state.runs/(state.balls/6)).toFixed(2):'0.00';
+  document.getElementById('crr-display').textContent=`CRR: ${crr}`;
+
+  const ballsLeft=(state.maxOvers*6)-state.balls;
+  const projected=state.balls>0?Math.round(state.runs/(state.balls)*state.maxOvers*6):'—';
+  document.getElementById('projected-display').textContent=projected;
+  document.getElementById('target-display').textContent='—';
+  document.getElementById('rrr-display').textContent='—';
+
+  const last=state.overHistory[state.overHistory.length-1];
+  document.getElementById('last-over-display').textContent=last?`${last.runs}R/${last.wkts}W`:'—';
+
+  const batters=getBattingTeamPlayers();
+  document.getElementById('striker-name').textContent=batters[state.strikerIdx]||'—';
+  document.getElementById('nonstriker-name').textContent=batters[state.nonStrikerIdx]||'—';
+  document.getElementById('striker-score').textContent='';
+  document.getElementById('nonstriker-score').textContent='';
+}
+
+function updateOverHistory(){
+  const list=document.getElementById('over-history-list');
+  list.innerHTML='';
+  [...state.overHistory].reverse().forEach(oh=>{
+    const row=document.createElement('div');
+    row.className='over-row';
+    const ballsHtml=oh.balls.map(b=>{
+      const cls=getBallClass(b);
+      const disp=String(b).toUpperCase().trim()||'0';
+      return `<div class="ball-dot ${cls}">${disp==='.'?'0':disp}</div>`;
+    }).join('');
+    row.innerHTML=`<div class="over-num">Ov ${oh.over}</div><div class="over-bowler">${oh.bowler.split(' ').pop()}</div><div class="over-balls">${ballsHtml}</div><div class="over-total">${oh.runs}R</div>`;
+    list.appendChild(row);
+  });
+}
+
+// ========== RECOMMENDATIONS ==========
+function getBowlerRec(){
+  const fielders=getFieldingTeamPlayers();
+  const scored=state.overHistory.map(o=>o.bowler);
+  const overCounts={};scored.forEach(b=>{overCounts[b]=(overCounts[b]||0)+1;});
+  const maxPerBowler=Math.floor(state.maxOvers/5);
+
+  const ranked=fielders.filter(name=>{
+    const s=getPlayerStat(name);
+    const canBowl=s.bowl_wkts>0||s.bowl_econ>0||s.role==='bowler'||s.role==='allrounder';
+    const notFull=(overCounts[name]||0)<maxPerBowler;
+    return canBowl&&notFull;
+  }).map(name=>{
+    const s=getPlayerStat(name);
+    const econ=s.bowl_econ||8;
+    const wkts=s.bowl_wkts||0;
+    const dots=s.bowl_dots||0;
+    const score=(10-econ)*2+wkts*3+dots*0.5;
+    const phase=state.currentOver<6?'powerplay':state.currentOver>14?'death':'middle';
+    const prevBowler=state.overHistory.length>0?state.overHistory[state.overHistory.length-1].bowler:null;
+    return {name,econ,wkts,dots,score,phase,recent:(overCounts[name]||0),sameAsPrev:name===prevBowler};
+  }).filter(b=>!b.sameAsPrev).sort((a,b)=>b.score-a.score);
+
+  return ranked.slice(0,3);
+}
+
+function getNextBatterRecs(){
+  const batters=getBattingTeamPlayers();
+  const remaining=[];
+  for(let i=state.nextBatterIdx;i<batters.length;i++) remaining.push(i);
+
+  const crr=state.balls>0?(state.runs/(state.balls/6)):0;
+  const isChase=false;
+  const needsAcceleration=crr<8&&state.currentOver>10;
+
+  remaining.sort((ai,bi)=>{
+    const a=getPlayerStat(batters[ai]);
+    const b=getPlayerStat(batters[bi]);
+    if(needsAcceleration){return (b.bat_sr||100)-(a.bat_sr||100);}
+    return (b.bat_avg||20)-(a.bat_avg||20);
+  });
+
+  return remaining.slice(0,2);
+}
+
+function updateRecs(){
+  // Win Prob (simple model)
+  const crr=state.balls>0?(state.runs/(state.balls/6)):0;
+  const target=(state.maxOvers)*7.5;
+  const adj=Math.min(90,Math.max(10,50+(crr-7.5)*4-(state.wickets*4)));
+  state.winProb=Math.round(adj);
+  document.getElementById('win-prob-fill').style.width=state.winProb+'%';
+  document.getElementById('win-prob-pct').textContent=state.winProb+'%';
+
+  // Bowler recs
+  const bowlerRecs=getBowlerRec();
+  const blist=document.getElementById('bowler-rec-list');
+  blist.innerHTML='';
+  bowlerRecs.forEach((b,i)=>{
+    const card=document.createElement('div');
+    card.className='rec-card'+(i===0?' top-rec':'');
+    const phase=state.currentOver<6?'Powerplay':state.currentOver>14?'Death overs':'Middle overs';
+    card.innerHTML=`
+      <div class="rec-card-header">
+        <div class="rec-name">${b.name}</div>
+        <div class="rec-rank ${i===0?'gold':''}">${i===0?'★ TOP REC':`#${i+1}`}</div>
+      </div>
+      <div class="rec-stats-row">
+        <div class="rec-stat"><span class="rec-stat-label">Economy</span><span class="rec-stat-value highlight">${b.econ.toFixed(1)}</span></div>
+        <div class="rec-stat"><span class="rec-stat-label">Wickets</span><span class="rec-stat-value">${b.wkts}</span></div>
+        <div class="rec-stat"><span class="rec-stat-label">Dot Balls</span><span class="rec-stat-value">${b.dots}</span></div>
+        <div class="rec-stat"><span class="rec-stat-label">Overs Bowled</span><span class="rec-stat-value">${b.recent}</span></div>
+      </div>
+      <div class="rec-reason">Recommended for ${phase}. Economy rate of ${b.econ.toFixed(1)} makes this an optimal choice at this stage.</div>
+    `;
+    blist.appendChild(card);
+  });
+
+  // Batter recs
+  const batterIdxs=getNextBatterRecs();
+  const batters=getBattingTeamPlayers();
+  const alist=document.getElementById('batter-rec-list');
+  alist.innerHTML='';
+  if(state.wickets>0||batterIdxs.length>0){
+    batterIdxs.forEach((idx,i)=>{
+      const name=batters[idx];
+      const s=getPlayerStat(name);
+      const card=document.createElement('div');
+      card.className='rec-card'+(i===0?' top-rec':'');
+      const crr2=state.balls>0?(state.runs/(state.balls/6)):0;
+      const reason=crr2<7?'High average player recommended — stabilize innings':'High SR player recommended — acceleration needed';
+      card.innerHTML=`
+        <div class="rec-card-header">
+          <div class="rec-name">${name}</div>
+          <div class="rec-rank ${i===0?'gold':''}">${i===0?'★ SEND IN':'#2'}</div>
+        </div>
+        <div class="rec-stats-row">
+          <div class="rec-stat"><span class="rec-stat-label">Avg</span><span class="rec-stat-value highlight">${s.bat_avg?s.bat_avg.toFixed(1):'—'}</span></div>
+          <div class="rec-stat"><span class="rec-stat-label">SR</span><span class="rec-stat-value">${s.bat_sr?s.bat_sr.toFixed(0):'—'}</span></div>
+          <div class="rec-stat"><span class="rec-stat-label">6s</span><span class="rec-stat-value">${s.bat_6s||0}</span></div>
+        </div>
+        <div class="rec-reason">${reason}</div>
+      `;
+      alist.appendChild(card);
+    });
+  }
+}
+
+function updateBowlingFigures(){
+  const list=document.getElementById('bowling-figures-list');
+  list.innerHTML='';
+  const sorted=Object.entries(state.bowlingFigures).sort((a,b)=>b[1].wkts-a[1].wkts);
+  sorted.forEach(([name,fig])=>{
+    const row=document.createElement('div');
+    row.className='bowl-stat-row';
+    const econ=fig.overs>0?(fig.runs/fig.overs).toFixed(1):'—';
+    row.innerHTML=`<span class="bowl-name">${name}</span><span class="bowl-figures">${fig.wkts}/${fig.runs}</span><span class="bowl-econ">${fig.overs}Ov Eco:${econ}</span>`;
+    list.appendChild(row);
+  });
+  if(sorted.length===0){list.innerHTML='<div style="color:var(--text3);font-size:0.78rem;padding:10px;">No overs bowled yet.</div>';}
+}
+
+function updateAlerts(){
+  const list=document.getElementById('alerts-list');
+  list.innerHTML='';
+  const alerts=[];
+  const crr=state.balls>0?(state.runs/(state.balls/6)):0;
+
+  if(crr>12.5) alerts.push({type:'red',title:'⚠ HIGH RUN RATE',body:`Current run rate is ${crr.toFixed(1)} — well above par. Consider defensive field placement.`});
+  if(state.wickets>=5) alerts.push({type:'red',title:'⚠ BATTING COLLAPSE',body:`${state.wickets} wickets down. Lower-order batters coming in — adjust bowling strategy.`});
+  if(state.currentOver>=15&&state.currentOver<state.maxOvers) alerts.push({type:'yellow',title:'⚡ DEATH OVERS',body:'Final overs phase. Prioritise yorkers and slower deliveries. Use your best death bowlers.'});
+  if(state.currentOver<6) alerts.push({type:'green',title:'✓ POWERPLAY ACTIVE',body:'Only 2 fielders outside ring. Attack with swing and pace. Keep run rate under 8.'});
+  if(crr<6&&state.currentOver>10) alerts.push({type:'yellow',title:'↑ ACCELERATION NEEDED',body:`CRR ${crr.toFixed(1)} is below par. Consider sending in a high-SR batter immediately.`});
+  if(alerts.length===0) alerts.push({type:'green',title:'✓ MATCH PROGRESSING',body:'No critical alerts at this time. Monitor run rate and wicket patterns.'});
+
+  alerts.forEach(a=>{
+    const box=document.createElement('div');
+    box.className=`alert-box alert-${a.type}`;
+    box.innerHTML=`<div class="alert-title">${a.title}</div><div class="alert-body">${a.body}</div>`;
+    list.appendChild(box);
+  });
+}
+
+function updateMomentumChart(){
+  const canvas=document.getElementById('momentum-chart');
+  const ctx=canvas.getContext('2d');
+  canvas.width=canvas.offsetWidth*2;canvas.height=100;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  if(state.overHistory.length===0)return;
+  const data=state.overHistory.map(o=>o.runs);
+  const max=Math.max(...data,14);
+  const w=canvas.width,h=canvas.height;
+  const step=w/Math.max(data.length,1);
+
+  ctx.strokeStyle='rgba(0,212,255,0.5)';ctx.lineWidth=1;
+  ctx.setLineDash([3,3]);
+  const parY=h-(7.5/max)*h;
+  ctx.beginPath();ctx.moveTo(0,parY);ctx.lineTo(w,parY);ctx.stroke();
+  ctx.setLineDash([]);
+
+  ctx.beginPath();
+  data.forEach((v,i)=>{
+    const x=(i+0.5)*step;const y=h-(v/max)*h;
+    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  });
+  ctx.strokeStyle='#00d4ff';ctx.lineWidth=2;ctx.stroke();
+
+  data.forEach((v,i)=>{
+    const x=(i+0.5)*step;const y=h-(v/max)*h;
+    ctx.beginPath();ctx.arc(x,y,3,0,Math.PI*2);
+    ctx.fillStyle=v>10?'#ff3d3d':v>7?'#ffd700':'#00ff9d';ctx.fill();
+  });
+}
+
+// ========== TABS ==========
+function switchRTab(id,el){
+  document.querySelectorAll('.rtab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.rpanel').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('rpanel-'+id).classList.add('active');
+}
+
+// ========== INIT ==========
+buildPlayerSelects();
+document.getElementById('team-a-name').dispatchEvent(new Event('input'));
+document.getElementById('team-b-name').dispatchEvent(new Event('input'));
+</script>
+</body>
+</html>
